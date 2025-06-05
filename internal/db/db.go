@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -12,7 +13,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var DB *sql.DB
+var DataBase *sql.DB
 
 func Init() {
 	host := os.Getenv("DB_HOST")
@@ -29,13 +30,14 @@ func Init() {
 	log.Println("Trying to establish connection.")
 
 	var err error
-	DB, err = sql.Open("postgres", dsn)
+
+	DataBase, err = sql.Open("postgres", dsn)
 	if err != nil {
-		log.Fatal("Failed to connect to DB:", err)
+		log.Fatal("Failed to connect to DataBase:", err)
 	}
 
-	if err := DB.Ping(); err != nil {
-		log.Fatal("Failed to ping DB:", err)
+	if err := DataBase.Ping(); err != nil {
+		log.Fatal("Failed to ping DataBase:", err)
 	}
 
 	log.Println("Database connection established.")
@@ -47,15 +49,15 @@ func RunMigrations(db *sql.DB) {
 		log.Fatalf("Migration driver error: %v", err)
 	}
 
-	m, err := migrate.NewWithDatabaseInstance(
+	instance, err := migrate.NewWithDatabaseInstance(
 		"file://migrations",
 		"postgres", driver)
 	if err != nil {
 		log.Fatalf("Migration init error: %v", err)
 	}
 
-	err = m.Up()
-	if err != nil && err != migrate.ErrNoChange {
+	err = instance.Up()
+	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		log.Fatalf("Migration failed: %v", err)
 	}
 

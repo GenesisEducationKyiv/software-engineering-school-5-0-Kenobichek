@@ -1,7 +1,6 @@
 package notifier
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/sendgrid/sendgrid-go"
@@ -10,27 +9,23 @@ import (
 
 type EmailNotifier struct{}
 
-func (n EmailNotifier) Send(email_to string, message string, subject string) error {
-	email_from := os.Getenv("EMAIL_FROM")
-	name_from := os.Getenv("EMAIL_FROM_NAME")
-	sendgrid_api_key := os.Getenv("SENDGRID_API_KEY")
+func (n EmailNotifier) Send(emailTo string, message string, subject string) error {
+	emailFrom := os.Getenv("EMAIL_FROM")
+	nameFrom := os.Getenv("EMAIL_FROM_NAME")
+	apiKey := os.Getenv("SENDGRID_API_KEY")
 
-	from := mail.NewEmail(name_from, email_from)
-	email_subject := subject
-	to := mail.NewEmail("Recipient", email_to)
-	plain_text_content := message
-	html_content := message
-	m := mail.NewSingleEmail(from, email_subject, to, plain_text_content, html_content)
+	from := mail.NewEmail(nameFrom, emailFrom)
+	emailSubject := subject
+	to := mail.NewEmail("Recipient", emailTo)
+	plainTextContent := message
+	htmlContent := message
+	m := mail.NewSingleEmail(from, emailSubject, to, plainTextContent, htmlContent)
 
-	client := sendgrid.NewSendClient(sendgrid_api_key)
-	response, err := client.Send(m)
+	client := sendgrid.NewSendClient(apiKey)
+	_, err := client.Send(m)
 
 	if err != nil {
-		fmt.Println("Sending Error:", err)
-	} else {
-		fmt.Printf("Status Code: %d\n", response.StatusCode)
-		fmt.Printf("Response Body: %s\n", response.Body)
-		fmt.Printf("Response Headers: %v\n", response.Headers)
+		return err
 	}
 
 	return nil

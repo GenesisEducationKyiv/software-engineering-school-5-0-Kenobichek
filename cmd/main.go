@@ -8,7 +8,6 @@ import (
 	"Weather-Forecast-API/internal"
 	"Weather-Forecast-API/internal/db"
 	"Weather-Forecast-API/internal/scheduler"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
 )
@@ -22,15 +21,19 @@ func init() {
 
 func main() {
 	db.Init()
-	db.RunMigrations(db.DB)
+	db.RunMigrations(db.DataBase)
 
 	go scheduler.StartScheduler()
 
-	r := chi.NewRouter()
-	internal.RegisterRoutes(r)
+	router := chi.NewRouter()
+	internal.RegisterRoutes(router)
 
 	port := os.Getenv("PORT")
 
 	log.Println("Server started at :" + port)
-	http.ListenAndServe(":"+port, r)
+	err := http.ListenAndServe(":"+port, router)
+
+	if err != nil {
+		return
+	}
 }
