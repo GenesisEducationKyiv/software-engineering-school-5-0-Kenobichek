@@ -1,18 +1,26 @@
+version: "2"
 linters:
-  enable-all: true
-  disable:
-#    - depguard
-#    - gofumpt
-#    - err113
-#    - goimports
-#    - wrapcheck
-#    - errcheck
-#    - gosec
-#    - forcetypeassert
-#    - exhaustruct
-#    - revive
-#    - gochecknoinits
-#    - noctx
-#    - rowserrcheck
-#    - gochecknoglobals
-#    - sqlclosecheck
+  default: all
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
