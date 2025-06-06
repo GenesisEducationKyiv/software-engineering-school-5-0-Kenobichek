@@ -1,6 +1,7 @@
 package notifier
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/sendgrid/sendgrid-go"
@@ -22,10 +23,10 @@ func (n EmailNotifier) Send(emailTo string, message string, subject string) erro
 	m := mail.NewSingleEmail(from, emailSubject, to, plainTextContent, htmlContent)
 
 	client := sendgrid.NewSendClient(apiKey)
-	_, err := client.Send(m)
 
+	_, err := client.Send(m)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send email via SendGrid: %w", err)
 	}
 
 	return nil

@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -25,7 +26,7 @@ func CreateSubscription(subscription *models.Subscription) error {
 		return errors.New("already subscribed")
 	}
 
-	return err
+	return nil
 }
 
 func ConfirmByToken(token string) error {
@@ -34,12 +35,12 @@ func ConfirmByToken(token string) error {
 		SET confirmed = TRUE
 		WHERE token = $1`, token)
 	if err != nil {
-		return err
+		return errors.New("failed update subscription confirmation")
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return errors.New("failed rows affected")
 	}
 
 	if rows == 0 {
@@ -52,12 +53,12 @@ func ConfirmByToken(token string) error {
 func UnsubscribeByToken(token string) error {
 	result, err := db.DataBase.Exec(`DELETE FROM subscriptions WHERE token = $1`, token)
 	if err != nil {
-		return err
+		return errors.New("failed delete subscription")
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return errors.New("failed rows affected")
 	}
 
 	if rows == 0 {
@@ -68,11 +69,11 @@ func UnsubscribeByToken(token string) error {
 }
 
 func GetDueSubscriptions() []models.Subscription {
-	rows, err := db.DataBase.Query(`
-		SELECT id, channel_type, channel_value, city, frequency_minutes
-		FROM subscriptions
-		WHERE confirmed = TRUE AND next_notified_at <= NOW()
-	`)
+	rows, err := db.DataBase.Query(
+		`	SELECT id, channel_type, channel_value, city, frequency_minutes
+			FROM subscriptions
+			WHERE confirmed = TRUE AND next_notified_at <= NOW()`,
+	)
 
 	var subs []models.Subscription
 
@@ -83,15 +84,21 @@ func GetDueSubscriptions() []models.Subscription {
 	for rows.Next() {
 		var s models.Subscription
 
-		rows.Scan(&s.ID, &s.ChannelType, &s.ChannelValue, &s.City, &s.FrequencyMinutes)
-		subs = append(subs, s)
+		if err := rows.Scan(&s.ID, &s.ChannelType, &s.ChannelValue, &s.City, &s.FrequencyMinutes); err != nil {
+			return subs
+		}
 	}
 
 	return subs
 }
 
-func UpdateNextNotification(id int, next time.Time) {
-	db.DataBase.Exec(`UPDATE subscriptions SET next_notified_at = $1 WHERE id = $2`, next, id)
+func UpdateNextNotification(id int, next time.Time) error {
+	_, err := db.DataBase.Exec(`UPDATE subscriptions SET next_notified_at = $1 WHERE id = $2`, next, id)
+	if err != nil {
+		return fmt.Errorf("failed to update next_notified_at for id %d: %w", id, err)
+	}
+
+	return nil
 }
 
 func GetSubscriptionByToken(token string) (models.Subscription, error) {
@@ -118,9 +125,5 @@ func GetSubscriptionByToken(token string) (models.Subscription, error) {
 		return subscription, errors.New("subscription not found")
 	}
 
-	if err != nil {
-		return subscription, err
-	}
-
-	return subscription, nil
+	return subscription, fmt.Errorf("failed to get subscription by token '%s': %w", token, err)
 }

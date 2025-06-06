@@ -1,9 +1,11 @@
 package weather
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 )
@@ -12,15 +14,26 @@ type OpenWeather struct {
 	APIKey string
 }
 
-func (ow OpenWeather) GetWeather(city string) (DataWeather, error) {
+func (ow OpenWeather) GetWeather(ctx context.Context, city string) (DataWeather, error) {
 	geoURL := fmt.Sprintf("http://api.openweathermap.org/geo/1.0/direct?q=%s&limit=1&appid=%s",
 		url.QueryEscape(city), ow.APIKey)
-	resp, err := http.Get(geoURL)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, geoURL, nil)
+	if err != nil {
+		return DataWeather{}, errors.New("new request error")
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 
 	if err != nil || resp.StatusCode != http.StatusOK {
 		return DataWeather{}, errors.New("failed to fetch geo data")
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Println("failed to close response body")
+		}
+	}()
 
 	var geo []map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&geo); err != nil {
@@ -41,15 +54,26 @@ func (ow OpenWeather) GetWeather(city string) (DataWeather, error) {
 	weatherURL := fmt.Sprintf("https://api.openweathermap.org/data/2.5/weather?lat=%f&lon=%f&appid=%s&units=metric",
 		lat, lon, ow.APIKey)
 
-	weatherResp, err := http.Get(weatherURL)
+	req, err = http.NewRequestWithContext(ctx, http.MethodGet, weatherURL, nil)
+	if err != nil {
+		return DataWeather{}, errors.New("new request error")
+	}
+
+	weatherResp, err := http.DefaultClient.Do(req)
+
 	if err != nil || weatherResp.StatusCode != http.StatusOK {
 		return DataWeather{}, errors.New("failed to fetch weather data")
 	}
-	defer weatherResp.Body.Close()
+
+	defer func() {
+		if err := weatherResp.Body.Close(); err != nil {
+			log.Println("failed to close response body")
+		}
+	}()
 
 	var data map[string]interface{}
 	if err := json.NewDecoder(weatherResp.Body).Decode(&data); err != nil {
-		return DataWeather{}, err
+		return DataWeather{}, fmt.Errorf("failed to decode weather API response: %w", err)
 	}
 
 	main, _ := data["main"].(map[string]interface{})

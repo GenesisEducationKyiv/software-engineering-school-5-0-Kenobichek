@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"errors"
+
 	"Weather-Forecast-API/internal/db"
 	"Weather-Forecast-API/internal/models"
 )
@@ -12,7 +14,7 @@ func GetTemplateByName(name string) (*models.MessageTemplate, error) {
 
 	err := db.DataBase.QueryRow(query, name).Scan(&tpl.Subject, &tpl.Message)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("failed get template by name")
 	}
 
 	return &tpl, nil

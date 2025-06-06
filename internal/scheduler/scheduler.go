@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -22,6 +23,9 @@ func StartScheduler() {
 
 	cron := cron.New()
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	_, err = cron.AddFunc("@every 1m", func() {
 		log.Println("[Scheduler] Checking subscriptions...")
 
@@ -30,7 +34,7 @@ func StartScheduler() {
 		for _, sub := range subs {
 			provider := weather.OpenWeather{APIKey: os.Getenv("OPENSTREETMAP_API_KEY")}
 
-			weatherData, err := provider.GetWeather(sub.City)
+			weatherData, err := provider.GetWeather(ctx, sub.City)
 			if err != nil {
 				log.Printf("[Scheduler] Error fetching weather for %s: %v\n", sub.City, err)
 
@@ -49,7 +53,10 @@ func StartScheduler() {
 			emailNotifier := notifier.EmailNotifier{}
 			_ = emailNotifier.Send(sub.ChannelValue, message, subject)
 
-			repository.UpdateNextNotification(sub.ID, time.Now().Add(time.Duration(sub.FrequencyMinutes)*time.Minute))
+			err = repository.UpdateNextNotification(sub.ID, time.Now().Add(time.Duration(sub.FrequencyMinutes)*time.Minute))
+			if err != nil {
+				return
+			}
 		}
 	})
 	if err != nil {
