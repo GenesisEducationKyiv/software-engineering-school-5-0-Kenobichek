@@ -30,4 +30,4 @@
 
 
 ## 6. Deadline
-deadline is not defined
+No deadline specified
