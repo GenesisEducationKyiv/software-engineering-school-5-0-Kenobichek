@@ -38,7 +38,7 @@ func Unsubscribe(writer http.ResponseWriter, request *http.Request) {
 		if err.Error() == "not found" {
 			utilities.RespondJSON(writer, http.StatusNotFound, "Token not found")
 		} else {
-			utilities.RespondJSON(writer, http.StatusBadRequest, "Failed to get weather: "+err.Error())
+			utilities.RespondJSON(writer, http.StatusBadRequest, "Failed to confirm subscription: "+err.Error())
 		}
 
 		return

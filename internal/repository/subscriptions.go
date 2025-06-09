@@ -125,5 +125,9 @@ func GetSubscriptionByToken(token string) (models.Subscription, error) {
 		return subscription, errors.New("subscription not found")
 	}
 
-	return subscription, fmt.Errorf("failed to get subscription by token '%s': %w", token, err)
+	if err != nil {
+		return subscription, fmt.Errorf("failed to get subscription by token '%s': %w", token, err)
+	}
+
+	return subscription, nil
 }

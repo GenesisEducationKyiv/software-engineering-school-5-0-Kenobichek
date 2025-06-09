@@ -18,7 +18,7 @@ func GetWeather(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	provider := weather.OpenWeather{APIKey: os.Getenv("OPENWETHERMAP_API_KEY")}
+	provider := weather.OpenWeather{APIKey: os.Getenv("OPENWEATHERMAP_API_KEY")}
 
 	ctx, cancel := context.WithTimeout(request.Context(), 5*time.Second)
 	defer cancel()

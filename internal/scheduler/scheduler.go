@@ -32,12 +32,11 @@ func StartScheduler() {
 		subs := repository.GetDueSubscriptions()
 
 		for _, sub := range subs {
-			provider := weather.OpenWeather{APIKey: os.Getenv("OPENSTREETMAP_API_KEY")}
+			provider := weather.OpenWeather{APIKey: os.Getenv("OPENWEATHERMAP_API_KEY")}
 
 			weatherData, err := provider.GetWeather(ctx, sub.City)
 			if err != nil {
 				log.Printf("[Scheduler] Error fetching weather for %s: %v\n", sub.City, err)
-
 				continue
 			}
 
@@ -55,7 +54,8 @@ func StartScheduler() {
 
 			err = repository.UpdateNextNotification(sub.ID, time.Now().Add(time.Duration(sub.FrequencyMinutes)*time.Minute))
 			if err != nil {
-				return
+				log.Printf("[Scheduler] Error updating next notification for subscription %d: %v\n", sub.ID, err)
+				continue
 			}
 		}
 	})
