@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: weather-api
+    ports:
+      - "${PORT}:${PORT}"
+    volumes:
+      - ./:/app
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:latest
+    container_name: weather-db
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      PGPORT: ${DB_PORT}
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+
+  # migrate:
+  #   image: migrate/migrate
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./migrations/:/migrations
+  #   command: ["-path", "/migrations/", "-database", "postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable", "up"]
+
+volumes:
+  pgdata:
