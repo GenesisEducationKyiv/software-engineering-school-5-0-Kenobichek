@@ -1,33 +1,92 @@
-# System Design Doc (Short Form)
+# Design-001: Enforcing Free Subscription Limits
 
 ## 1. Context
-* **Problem:** Users can create multiple free subscriptions, driving costs beyond budget.
-* **Goal:** Allow at most **one** free subscription per user and add an upgrade path to a paid tier.
+
+Problem: Users can currently create multiple FREE subscriptions, increasing our operational costs.
+
+Goal: Allow **only one free subscription per user**, while enabling upgrade to a paid plan.
+
 ---
 
 ## 2. Solution
-1. **DB Layer** – Add unique index `(user_id, plan_type='FREE')`.
-2. **API** – New endpoint `POST /subscriptions/upgrade` converts free ➜ paid.
-3. **Migration** – Background job keeps the oldest free sub, deletes the rest.
+
+### a. Database Enforcement
+
+```sql
+CREATE UNIQUE INDEX idx_user_free_sub 
+  ON subscriptions(user_id) 
+  WHERE plan_type = 'FREE';
+```
+
+This ensures at most one free subscription per user in the DB layer.
+
 ---
 
-## 3. Validation
+### b. API Endpoint: Upgrade to Paid
 
-* Unit + integration tests for duplicate prevention.
-* Grafana metric `subscription_duplicate_attempt_total` < **0.1 %**.
+**POST** `/subscriptions/upgrade`
+
+#### Request:
+```json
+{
+  "user_id": 123,
+  "from_plan": "FREE",
+  "to_plan": "PAID"
+}
+```
+
+#### Response (Success):
+```json
+{
+  "status": "upgraded",
+  "subscription_id": 456
+}
+```
+
+#### Response (Errors):
+- `409 Conflict`: Already has an active PAID subscription.
+- `400 Bad Request`: Invalid plan type.
+- `404 Not Found`: No FREE subscription found.
+
 ---
 
+### c. Migration Plan
 
-## 4. Ops & Safety
-* PagerDuty alert if duplicates > 5/min (10 min window).
-* Feature flag `unique_subscription_guard`; rollback by disabling flag and dropping index.
+Batch cleanup job to retain only the oldest FREE subscription per user:
+
+```sql
+DELETE FROM subscriptions
+WHERE user_id = ?
+  AND plan_type = 'FREE'
+  AND id != (
+    SELECT id FROM subscriptions
+    WHERE user_id = ? AND plan_type = 'FREE'
+    ORDER BY created_at ASC LIMIT 1
+  );
+```
+
+- Use batching (e.g., `LIMIT 1000`) and throttling to avoid DB contention.
+
 ---
 
+## 3. Validation & Monitoring
+
+- **Testing**: Unit + integration tests including concurrent signup/upgrade simulation.
+- **Metric**: `subscription_duplicate_attempt_total` to monitor rejected duplicate attempts.
+---
+
+## 4. Operations & Safety
+
+PagerDuty alert: If >5 duplicate attempts per minute over a 10-minute window.
+
+---
 
 ## 5. Reviewers
-* Backend Team
+
+Backend team
+
 ---
 
-
 ## 6. Deadline
+
 No deadline specified

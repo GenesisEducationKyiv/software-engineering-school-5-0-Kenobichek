@@ -1,46 +1,50 @@
-# ADR‑001: Selecting a Weather‑Data API Provider for the **Weather‑Subscription API**
+# ADR-001: Selection of Weather API for Weather-Subscription Service
 
-**Status**: Accepted – 7 June 2025  
-**Decision Maker**: Backend Dev (*Kenobichek*)
----
-
-## Context
-
-The **Weather‑Subscription API** - a simple API that lets users subscribe to weather updates for their city  
-
-Five commercial weather APIs were shortlisted and evaluated:
-
-| Criterion | **OpenWeatherMap** (chosen) | WeatherAPI.com | Weatherbit.io | AccuWeather | Weatherstack |
-|-----------|-----------------------------|----------------|---------------|-------------|--------------|
-| Free tier & limits | 1 000 calls/day; 60 req/min; **1 M req/mo** | 1 M req/mo; 3‑day forecast | 50 req/day | 50 req/day | 100 req/mo |
-| Paid price entry | Pay‑as‑you‑go **$0.0015/call** | **$7/mo** (3 M) | **$40/mo** | **$25/mo** | **$9.99/mo** |
-| Historical data | 46 + years | 2010→ | 25 y | Add‑on | None |
-| Forecast range | Minute‑by‑minute 1 h; hourly 48 h; daily 8 d; long‑term 1.5 y | Up to 14 d | Hourly 240 h; daily 16 d | Hourly 120 h; daily 15 d | 7 d |
-| Severe‑weather alerts | Yes | Yes | Yes | Yes (paid) | No |
-| Air‑quality data | Yes (global AQI) | Yes | Yes | Add‑on | No |
-| Maps & tiles | 15 static/tile layers | — | Beta tiles | Limited radar | — |
-| Global coverage | 200 k + cities | Global | 120 k stations | Global | Global (coarse) |
-| SLA / uptime | 99.5 % free; 99.9 % paid | 95.5 % free | ≥ 95 % | Contract | 99 % |
+## Status
+- **Accepted** — June 7, 2025  
+- **Author** — Backend Developer (*Kenobichek*)
 
 ---
 
-## Decision
+## 1. Context
 
-Adopt **OpenWeatherMap One Call 3.0 API.**
-
-* **Cost‑effective scaling** – free 1 000 daily calls cover dev/testing; pay‑as‑you‑go eliminates big plan jumps.
-* **Rich dataset** – 46 + years of history, 1.5‑year outlook, AQI and government alerts cover all planned features.
-* **Strong Go ecosystem** – community package [`github.com/kyroy/weather`](https://pkg.go.dev/github.com/kyroy/weather) shortens integration time.
-* **Mature SLAs** – 99.5 % on free, 99.9 % on paid tiers satisfy our non‑functional requirements.
----
-
-## Consequences
-
-* **Implementation** – add an `openweathermap.Client` wrapper in `internal/adapter/weather/`.
-* **Configuration** – store `OWM_API_KEY` in `.env`; inject via Viper.
-* **Monitoring** – expose Prometheus gauge `owm_remaining_quota`; alert at < 20 % daily quota.
-* **Future** – if monthly cost exceeds **$500** or data quality issues arise, re‑evaluate WeatherAPI (closest feature parity).
+We're building a **Weather-Subscription API** that allows users to subscribe to weather updates for their city. A core dependency is choosing the right external weather API provider.
 
 ---
 
-*This ADR resides at `docs/adr/001-select-weather-api.md` and may be revisited as project requirements evolve.*
+## 2. Options Considered
+
+We evaluated 5 options:
+
+| Provider         | Free Tier                 | Historical Data | Forecast Range      | Alerts | AQI  | Mapping Support | Global Coverage | SLA                     |
+|------------------|---------------------------|------------------|----------------------|--------|------|------------------|------------------|--------------------------|
+| OpenWeatherMap   | 1000/day, 1M/month        | 46 years         | 1min–1.5 years       | Yes    | Yes  | 15 layers         | 200k+ cities     | 99.5% (free), 99.9% (paid) |
+| WeatherAPI.com   | 1M/month                  | Since 2010       | Up to 14 days        | Yes    | Yes  | —                 | Global           | 95.5%                    |
+| Weatherbit.io    | 50/day                    | 25 years         | 240hr/16 days        | Yes    | Yes  | Beta             | 120k stations    | ≥95%                     |
+| AccuWeather      | 50/day                    | Paid add-on      | 120hr/15 days        | Paid   | Add-on | Limited         | Global           | Contract-based           |
+| Weatherstack     | 100/month                 | No               | 7 days               | No     | No   | —                 | Global (low detail) | 99%                    |
+
+---
+
+## 3. Decision
+
+✅ **Choose OpenWeatherMap One Call 3.0**, because:
+
+- **Cost-effective**: Generous free tier for development/testing, pay-as-you-go pricing for production.
+- **Rich data**: Includes minute/hourly/daily forecasts, historical data, air quality index (AQI), and weather alerts.
+- **Go support**: Mature Go client available (`github.com/kyroy/weather`).
+- **Reliable**: SLA suitable for our operational needs.
+
+---
+
+## 4. Consequences
+
+We will:
+
+- Create a wrapper `openweathermap.Client` in `internal/adapter/weather/`.
+- Store the `OPENWETHERMAP_API_KEY` in `.env`.
+---
+
+## 5. Revisit Conditions
+
+This ADR lives in `docs/adr/001-select-weather-api.md` and should be revisited upon significant changes to API usage, cost, or business needs.
