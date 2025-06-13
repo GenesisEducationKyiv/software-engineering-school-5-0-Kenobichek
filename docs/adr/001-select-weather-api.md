@@ -42,7 +42,7 @@ We evaluated 5 options:
 We will:
 
 - Create a wrapper `openweathermap.Client` in `internal/adapter/weather/`.
-- Store the `OPENWETHERMAP_API_KEY` in `.env`.
+- Store the `OPENWEATHERMAP_API_KEY` in `.env`.
 ---
 
 ## 5. Revisit Conditions
