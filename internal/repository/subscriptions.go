@@ -87,11 +87,16 @@ func GetDueSubscriptions() []models.Subscription {
 		if err := rows.Scan(&s.ID, &s.ChannelType, &s.ChannelValue, &s.City, &s.FrequencyMinutes); err != nil {
 			return subs
 		}
+
+		subs = append(subs, s)
+	}
+
+	if err = rows.Err(); err != nil {
+		return subs
 	}
 
 	return subs
 }
-
 func UpdateNextNotification(id int, next time.Time) error {
 	_, err := db.DataBase.Exec(`UPDATE subscriptions SET next_notified_at = $1 WHERE id = $2`, next, id)
 	if err != nil {
@@ -101,7 +106,7 @@ func UpdateNextNotification(id int, next time.Time) error {
 	return nil
 }
 
-func GetSubscriptionByToken(token string) (models.Subscription, error) {
+func GetSubscriptionByToken(token string) (*models.Subscription, error) {
 	row := db.DataBase.QueryRow(`
 		SELECT id, channel_type, channel_value, city, frequency_minutes, confirmed, token, next_notified_at, created_at
 		FROM subscriptions
@@ -122,12 +127,12 @@ func GetSubscriptionByToken(token string) (models.Subscription, error) {
 	)
 
 	if errors.Is(err, sql.ErrNoRows) {
-		return subscription, errors.New("subscription not found")
+		return &subscription, errors.New("subscription not found")
 	}
 
 	if err != nil {
-		return subscription, fmt.Errorf("failed to get subscription by token '%s': %w", token, err)
+		return &subscription, fmt.Errorf("failed to get subscription by token '%s': %w", token, err)
 	}
 
-	return subscription, nil
+	return &subscription, nil
 }
