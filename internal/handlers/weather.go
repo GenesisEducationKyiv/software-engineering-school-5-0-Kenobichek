@@ -1,38 +1,40 @@
 package handlers
 
 import (
+	weather "Weather-Forecast-API/internal/external/openweather"
+	"Weather-Forecast-API/internal/utilities"
 	"context"
 	"net/http"
-	"os"
 	"time"
-
-	"Weather-Forecast-API/internal/utilities"
-	"Weather-Forecast-API/internal/weather"
 )
 
-func GetWeather(writer http.ResponseWriter, request *http.Request) {
+type WeatherHandler struct {
+	provider weather.OpenWeatherProvider
+	timeout  time.Duration
+}
+
+func NewWeatherHandler(provider weather.OpenWeatherProvider) *WeatherHandler {
+	return &WeatherHandler{
+		provider: provider,
+		timeout:  5 * time.Second,
+	}
+}
+func (h *WeatherHandler) GetWeather(writer http.ResponseWriter, request *http.Request) {
 	city := request.URL.Query().Get("city")
 	if city == "" {
-		utilities.RespondJSON(writer, http.StatusNotFound, "City not found")
-
+		utilities.RespondJSON(writer, http.StatusBadRequest, "City parameter is required")
 		return
 	}
 
-	provider := weather.OpenWeather{APIKey: os.Getenv("OPENWEATHERMAP_API_KEY")}
-
-	ctx, cancel := context.WithTimeout(request.Context(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(request.Context(), h.timeout)
 	defer cancel()
 
-	data, err := provider.GetWeather(ctx, city)
+	data, err := h.provider.GetWeatherByCity(ctx, city)
 	if err != nil {
-		if err.Error() == "city not found" {
-			utilities.RespondJSON(writer, http.StatusNotFound, "City not found")
-		} else {
-			utilities.RespondJSON(writer, http.StatusBadRequest, "Failed to get weather: "+err.Error())
-		}
-
+		utilities.RespondJSON(writer, http.StatusBadRequest, "Failed to get weather: "+err.Error())
 		return
 	}
 
 	utilities.RespondDataJSON(writer, http.StatusOK, data)
+
 }
