@@ -1,6 +1,7 @@
-package openweather
+package openweather_test
 
 import (
+	"Weather-Forecast-API/internal/external/openweather"
 	"Weather-Forecast-API/internal/weather/models"
 	"context"
 	"net/http"
@@ -72,9 +73,9 @@ func TestGeocodingService_GetCoordinates(t *testing.T) {
 			}))
 			defer mockServer.Close()
 
-			service := &GeocodingService{
-				apiKey:  "testAPIKey",
-				baseURL: mockServer.URL,
+			service := &openweather.GeocodingService{
+				ApiKey:  "testAPIKey",
+				BaseURL: mockServer.URL,
 			}
 
 			result, err := service.GetCoordinates(context.Background(), tt.city)
