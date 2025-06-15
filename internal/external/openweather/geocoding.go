@@ -10,20 +10,20 @@ import (
 )
 
 type GeocodingService struct {
-	apiKey  string
-	baseURL string
+	ApiKey  string
+	BaseURL string
 }
 
 func NewGeocodingService(apiKey string) *GeocodingService {
 	return &GeocodingService{
-		apiKey:  apiKey,
-		baseURL: "http://api.openweathermap.org/geo/1.0/direct",
+		ApiKey:  apiKey,
+		BaseURL: "http://api.openweathermap.org/geo/1.0/direct",
 	}
 }
 
 func (g *GeocodingService) GetCoordinates(ctx context.Context, city string) (models.Coordinates, error) {
 	geoURL := fmt.Sprintf("%s?q=%s&limit=1&appid=%s",
-		g.baseURL, url.QueryEscape(city), g.apiKey)
+		g.BaseURL, url.QueryEscape(city), g.ApiKey)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, geoURL, nil)
 	if err != nil {
