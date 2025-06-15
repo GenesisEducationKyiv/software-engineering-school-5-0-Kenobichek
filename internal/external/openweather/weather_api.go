@@ -1,6 +1,7 @@
 package openweather
 
 import (
+	"Weather-Forecast-API/internal/weather/models"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -20,18 +21,18 @@ func NewWeatherService(apiKey string) *OpenWeatherAPI {
 	}
 }
 
-func (w *OpenWeatherAPI) GetWeather(ctx context.Context, coords Coordinates) (WeatherData, error) {
+func (w *OpenWeatherAPI) GetWeather(ctx context.Context, coords models.Coordinates) (models.WeatherData, error) {
 	weatherURL := fmt.Sprintf("%s?lat=%f&lon=%f&appid=%s&units=metric",
 		w.baseURL, coords.Lat, coords.Lon, w.apiKey)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, weatherURL, nil)
 	if err != nil {
-		return WeatherData{}, fmt.Errorf("failed to create request: %w", err)
+		return models.WeatherData{}, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return WeatherData{}, fmt.Errorf("failed to execute request: %w", err)
+		return models.WeatherData{}, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
@@ -41,7 +42,7 @@ func (w *OpenWeatherAPI) GetWeather(ctx context.Context, coords Coordinates) (We
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return WeatherData{}, fmt.Errorf("API returned status code: %d", resp.StatusCode)
+		return models.WeatherData{}, fmt.Errorf("API returned status code: %d", resp.StatusCode)
 	}
 
 	var data struct {
@@ -55,14 +56,14 @@ func (w *OpenWeatherAPI) GetWeather(ctx context.Context, coords Coordinates) (We
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return WeatherData{}, fmt.Errorf("failed to decode response: %w", err)
+		return models.WeatherData{}, fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	if len(data.Weather) == 0 {
-		return WeatherData{}, fmt.Errorf("no weather data available")
+		return models.WeatherData{}, fmt.Errorf("no weather data available")
 	}
 
-	weatherData := WeatherData{
+	weatherData := models.WeatherData{
 		Temperature: data.Main.Temperature,
 		Humidity:    data.Main.Humidity,
 		Description: data.Weather[0].Description,

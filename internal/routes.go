@@ -9,7 +9,7 @@ import (
 
 func RegisterRoutes(router chi.Router) {
 	subscribeHandler := subscribe.NewSubscribeHandler()
-	weatherHandler := weather.NewWeatherHandler()
+	weatherHandler := weather.NewWeatherHandlerWithDefault()
 
 	router.Route("/api", func(r chi.Router) {
 		r.Get("/weather", weatherHandler.GetWeather)

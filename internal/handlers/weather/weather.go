@@ -1,8 +1,8 @@
 package weather
 
 import (
-	"Weather-Forecast-API/internal/external/openweather"
 	"Weather-Forecast-API/internal/utilities"
+	"Weather-Forecast-API/internal/weather"
 	"context"
 	"net/http"
 	"os"
@@ -10,16 +10,22 @@ import (
 )
 
 type WeatherHandler struct {
-	provider *openweather.OpenWeatherProvider
+	provider weather.WeatherProvider
 	timeout  time.Duration
 }
 
-func NewWeatherHandler() *WeatherHandler {
+func NewWeatherHandler(provider weather.WeatherProvider) *WeatherHandler {
 	return &WeatherHandler{
-		provider: openweather.NewOpenWeatherProvider(os.Getenv("OPENWEATHERMAP_API_KEY")),
+		provider: provider,
 		timeout:  5 * time.Second,
 	}
 }
+
+func NewWeatherHandlerWithDefault() *WeatherHandler {
+	provider := weather.NewOpenWeatherProvider(os.Getenv("OPENWEATHERMAP_API_KEY"))
+	return NewWeatherHandler(provider)
+}
+
 func (h *WeatherHandler) GetWeather(writer http.ResponseWriter, request *http.Request) {
 	city := request.URL.Query().Get("city")
 	if city == "" {

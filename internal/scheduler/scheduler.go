@@ -1,9 +1,9 @@
 package scheduler
 
 import (
-	"Weather-Forecast-API/internal/external/openweather"
 	"Weather-Forecast-API/internal/repository"
 	"Weather-Forecast-API/internal/services/notification"
+	"Weather-Forecast-API/internal/weather"
 	"context"
 	"fmt"
 	"log"
@@ -35,7 +35,7 @@ func StartScheduler() {
 		subs := repository.GetDueSubscriptions()
 		log.Printf("[Scheduler] Found %d due subscriptions\n", len(subs))
 
-		openWeatherProvider := openweather.NewOpenWeatherProvider(os.Getenv("OPENWEATHERMAP_API_KEY"))
+		openWeatherProvider := weather.NewOpenWeatherProvider(os.Getenv("OPENWEATHERMAP_API_KEY"))
 		notificationSender := notification.NewNotificationService()
 
 		for _, sub := range subs {
