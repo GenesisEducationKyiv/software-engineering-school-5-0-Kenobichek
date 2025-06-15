@@ -1,4 +1,4 @@
-package weather
+package openweather
 
 type Coordinates struct {
 	Lat float64 `json:"lat"`

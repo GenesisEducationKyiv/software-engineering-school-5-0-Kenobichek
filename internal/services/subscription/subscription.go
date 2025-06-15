@@ -1,4 +1,4 @@
-package service
+package subscription
 
 import (
 	"Weather-Forecast-API/internal/models"
@@ -14,8 +14,8 @@ type SubscriptionService interface {
 func NewSubscriptionService() SubscriptionService {
 	return &subscriptionService{}
 }
-type subscriptionService struct {
-}
+
+type subscriptionService struct {}
 
 func (s *subscriptionService) Subscribe(sub *models.Subscription) error {
 	if err := repository.CreateSubscription(sub); err != nil {

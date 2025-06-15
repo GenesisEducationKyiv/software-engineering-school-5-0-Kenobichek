@@ -1,4 +1,4 @@
-package service
+package notification
 
 import (
 	"Weather-Forecast-API/internal/notifier"

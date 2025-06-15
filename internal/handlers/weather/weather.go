@@ -1,21 +1,22 @@
-package handlers
+package weather
 
 import (
-	weather "Weather-Forecast-API/internal/external/openweather"
+	"Weather-Forecast-API/internal/external/openweather"
 	"Weather-Forecast-API/internal/utilities"
 	"context"
 	"net/http"
+	"os"
 	"time"
 )
 
 type WeatherHandler struct {
-	provider weather.OpenWeatherProvider
+	provider *openweather.OpenWeatherProvider
 	timeout  time.Duration
 }
 
-func NewWeatherHandler(provider weather.OpenWeatherProvider) *WeatherHandler {
+func NewWeatherHandler() *WeatherHandler {
 	return &WeatherHandler{
-		provider: provider,
+		provider: openweather.NewOpenWeatherProvider(os.Getenv("OPENWEATHERMAP_API_KEY")),
 		timeout:  5 * time.Second,
 	}
 }

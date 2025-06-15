@@ -6,11 +6,11 @@ import (
 )
 
 type SendGridEmailNotifier struct {
-	sendgrid *external.SendgridNotifier
+	sendgrid *sendgrid.SendgridNotifier
 }
 
 func NewEmailNotifier() (*SendGridEmailNotifier, error) {
-	sg, err := external.NewSendgridNotifierFromEnv()
+	sg, err := sendgrid.NewSendgridNotifierFromEnv()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize SendGrid notifier: %w", err)
 	}
@@ -18,7 +18,7 @@ func NewEmailNotifier() (*SendGridEmailNotifier, error) {
 }
 
 func (n *SendGridEmailNotifier) Send(to, message, subject string) error {
-	target := external.NotificationTarget{
+	target := sendgrid.NotificationTarget{
 		Type:    "email",
 		Address: to,
 	}

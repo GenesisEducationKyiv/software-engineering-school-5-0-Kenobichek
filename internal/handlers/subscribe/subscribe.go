@@ -1,10 +1,10 @@
-package handlers
+package subscribe
 
 import (
 	"Weather-Forecast-API/internal/models"
 	"Weather-Forecast-API/internal/repository"
-	notificationService "Weather-Forecast-API/internal/services/notification"
-	subscriptionService "Weather-Forecast-API/internal/services/subscription"
+	"Weather-Forecast-API/internal/services/notification"
+	"Weather-Forecast-API/internal/services/subscription"
 	"strings"
 
 	"Weather-Forecast-API/internal/utilities"
@@ -13,16 +13,14 @@ import (
 )
 
 type SubscribeHandler struct {
-	subscriptionService subscriptionService.SubscriptionService
-	notificationService notificationService.NotificationService
+	subscriptionService subscription.SubscriptionService
+	notificationService notification.NotificationService
 }
 
-func NewSubscribeHandler(
-	subscriptionService subscriptionService.SubscriptionService,
-	notificationService notificationService.NotificationService) *SubscribeHandler {
+func NewSubscribeHandler() *SubscribeHandler {
 	return &SubscribeHandler{
-		subscriptionService: subscriptionService,
-		notificationService: notificationService,
+		subscriptionService: subscription.NewSubscriptionService(),
+		notificationService: notification.NewNotificationService(),
 	}
 }
 

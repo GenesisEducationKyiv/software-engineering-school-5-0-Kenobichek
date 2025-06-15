@@ -1,23 +1,15 @@
 package internal
 
 import (
-	weather "Weather-Forecast-API/internal/external/openweather"
-	notificationService "Weather-Forecast-API/internal/services/notification"
-	subscriptionService "Weather-Forecast-API/internal/services/subscription"
-	"net/http"
-	"os"
-
-	"Weather-Forecast-API/internal/handlers"
+	"Weather-Forecast-API/internal/handlers/subscribe"
+	"Weather-Forecast-API/internal/handlers/weather"
 	"github.com/go-chi/chi/v5"
+	"net/http"
 )
 
 func RegisterRoutes(router chi.Router) {
-	subscribeHandler := handlers.NewSubscribeHandler(
-		subscriptionService.NewSubscriptionService(),
-		notificationService.NewNotificationService())
-
-	weatherHandler := handlers.NewWeatherHandler(
-		*weather.NewOpenWeatherProvider(os.Getenv("OPENWEATHERMAP_API_KEY")))
+	subscribeHandler := subscribe.NewSubscribeHandler()
+	weatherHandler := weather.NewWeatherHandler()
 
 	router.Route("/api", func(r chi.Router) {
 		r.Get("/weather", weatherHandler.GetWeather)
