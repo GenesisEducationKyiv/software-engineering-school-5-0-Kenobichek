@@ -12,3 +12,17 @@ reviews:
     drafts: false
 chat:
   auto_reply: true
+code_generation:
+  docstrings:
+    language: en
+    path_instructions:
+      - path: "**/*.go"
+        instructions: |
+          Generate Go-style docstrings for all newly added or changed functions, methods, structs, and interfaces.
+          Follow standard Go conventions. Comments should start with the name of the declared element and describe its purpose clearly.
+  unit_tests:
+    path_instructions:
+      - path: "**/*.go"
+        instructions: |
+          For all new functions or methods, generate unit tests using the built-in `testing` package.
+          Ensure coverage of both normal and edge cases where possible.
