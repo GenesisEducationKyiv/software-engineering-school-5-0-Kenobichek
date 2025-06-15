@@ -1,11 +1,20 @@
 package utilities
 
-var SupportedChannels = map[string]struct{}{
-	"email": {},
-	// "sms":   {},
+const (
+	hourlyMinutes = 60
+	dailyMinutes  = 1440
+)
+
+func SupportedChannels() map[string]struct{} {
+	return map[string]struct{}{
+		"email": {},
+		// "sms":   {},
+	}
 }
 
-var FrequencyToMinutes = map[string]int{
-	"hourly": 60,
-	"daily":  1440,
+func FrequencyToMinutes() map[string]int {
+	return map[string]int{
+		"hourly": hourlyMinutes,
+		"daily":  dailyMinutes,
+	}
 }

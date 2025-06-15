@@ -8,62 +8,66 @@ import (
 	"Weather-Forecast-API/internal/notifier"
 	"Weather-Forecast-API/internal/repository"
 	"Weather-Forecast-API/internal/utilities"
-
 	"github.com/google/uuid"
 )
 
-func Subscribe(w http.ResponseWriter, r *http.Request) {
-	channel_value := r.FormValue("email")
-	city := r.FormValue("city")
-	frequency := r.FormValue("frequency")
+func Subscribe(writer http.ResponseWriter, request *http.Request) {
+	channelValue := request.FormValue("email")
+	city := request.FormValue("city")
+	frequency := request.FormValue("frequency")
 
-	if channel_value == "" || city == "" || frequency == "" {
-		utilities.RespondJSON(w, http.StatusBadRequest, "Invalid input")
+	if channelValue == "" || city == "" || frequency == "" {
+		utilities.RespondJSON(writer, http.StatusBadRequest, "Invalid input")
+
 		return
 	}
 
-	channel_type := r.FormValue("channel_type")
-	if channel_type == "" {
-		channel_type = "email"
+	channelType := request.FormValue("channelType")
+	if channelType == "" {
+		channelType = "email"
 	}
 
-	if !utilities.IsValidChannel(channel_type) {
-		utilities.RespondJSON(w, http.StatusBadRequest, "Unsupported channel_type")
+	if !utilities.IsValidChannel(channelType) {
+		utilities.RespondJSON(writer, http.StatusBadRequest, "Unsupported channelType")
+
 		return
 	}
 
-	frequency_minutes, err := utilities.ConvertFrequency(frequency)
+	frequencyMinutes, err := utilities.ConvertFrequency(frequency)
 	if err != nil {
-		utilities.RespondJSON(w, http.StatusBadRequest, err.Error())
+		utilities.RespondJSON(writer, http.StatusBadRequest, err.Error())
+
 		return
 	}
 
 	template, err := repository.GetTemplateByName("confirm")
 	if err != nil {
-		utilities.RespondJSON(w, http.StatusInternalServerError, "Failed to load confirmation template")
+		utilities.RespondJSON(writer, http.StatusInternalServerError, "Failed to load confirmation template")
+
 		return
 	}
 
 	token := uuid.NewString()
 
 	sub := &models.Subscription{
-		ChannelType:      channel_type,
-		ChannelValue:     channel_value,
+		ChannelType:      channelType,
+		ChannelValue:     channelValue,
 		City:             city,
-		FrequencyMinutes: frequency_minutes,
+		FrequencyMinutes: frequencyMinutes,
 		Token:            token,
 	}
 
 	if err := repository.CreateSubscription(sub); err != nil {
-		utilities.RespondJSON(w, http.StatusConflict, "Already subscribed or DB error")
+		utilities.RespondJSON(writer, http.StatusConflict, "Already subscribed or DB error")
+
 		return
 	}
 
 	message := strings.ReplaceAll(template.Message, "{{ confirm_token }}", token)
 	subject := template.Subject
 
-	notifier := notifier.EmailNotifier{}
-	_ = notifier.Send(channel_value, message, subject)
+	emailNotifier := notifier.EmailNotifier{}
+	_ = emailNotifier.Send(channelValue, message, subject)
 
-	utilities.RespondJSON(w, http.StatusOK, "Subscription successful. Confirmation sent.")
+	utilities.RespondJSON(writer, http.StatusOK, "Subscription successful. Confirmation sent.")
 }
