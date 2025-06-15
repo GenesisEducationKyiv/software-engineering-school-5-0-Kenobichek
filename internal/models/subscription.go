@@ -13,8 +13,3 @@ type Subscription struct {
 	NextNotifiedAt   time.Time
 	CreatedAt        time.Time
 }
-
-type MessageTemplate struct {
-	Subject string
-	Message string
-}
