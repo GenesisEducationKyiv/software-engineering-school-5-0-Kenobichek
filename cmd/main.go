@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Weather-Forecast-API/internal/routes"
 	"Weather-Forecast-API/internal/scheduler"
 	"errors"
 	"log"
@@ -8,7 +9,6 @@ import (
 	"time"
 
 	"Weather-Forecast-API/config"
-	"Weather-Forecast-API/internal"
 	"Weather-Forecast-API/internal/db"
 	"github.com/go-chi/chi/v5"
 )
@@ -39,7 +39,7 @@ func main() {
 	go scheduler.StartScheduler()
 
 	router := chi.NewRouter()
-	internal.RegisterRoutes(router)
+	routes.RegisterRoutes(router)
 
 	srv := &http.Server{
 		Addr:         cfg.GetServerAddress(),

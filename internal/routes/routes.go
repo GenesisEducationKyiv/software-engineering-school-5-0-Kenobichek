@@ -1,4 +1,4 @@
-package internal
+package routes
 
 import (
 	"Weather-Forecast-API/internal/handlers/subscribe"
