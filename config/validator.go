@@ -10,7 +10,7 @@ func validateConfig(config *Config) error {
 
 	if config.Database.Port == 0 {
 		errors = append(errors, "PORT is required")
-	} else if config.Database.Port < 1 || config.Database.Port > 65535 {
+	} else if config.Server.Port < 1 || config.Server.Port > 65535 {
 		errors = append(errors, "PORT must be between 1 and 65535")
 	}
 

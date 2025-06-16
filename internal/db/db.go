@@ -26,6 +26,7 @@ func Init(dsn string) (*sql.DB, error) {
 		if closeErr := DataBase.Close(); closeErr != nil {
 			return nil, fmt.Errorf("failed to close database: %w and failed to ping database: %v", closeErr, err)
 		}
+		DataBase = nil
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
