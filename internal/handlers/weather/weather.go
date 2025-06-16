@@ -1,7 +1,7 @@
 package weather
 
 import (
-	"Weather-Forecast-API/internal/utilities"
+	"Weather-Forecast-API/internal/response"
 	"Weather-Forecast-API/internal/weather"
 	"context"
 	"net/http"
@@ -29,7 +29,7 @@ func NewWeatherHandlerWithDefault() *WeatherHandler {
 func (h *WeatherHandler) GetWeather(writer http.ResponseWriter, request *http.Request) {
 	city := request.URL.Query().Get("city")
 	if city == "" {
-		utilities.RespondJSON(writer, http.StatusBadRequest, "City parameter is required")
+		response.RespondJSON(writer, http.StatusBadRequest, "City parameter is required")
 		return
 	}
 
@@ -38,10 +38,10 @@ func (h *WeatherHandler) GetWeather(writer http.ResponseWriter, request *http.Re
 
 	data, err := h.provider.GetWeatherByCity(ctx, city)
 	if err != nil {
-		utilities.RespondJSON(writer, http.StatusBadRequest, "Failed to get weather: "+err.Error())
+		response.RespondJSON(writer, http.StatusBadRequest, "Failed to get weather: "+err.Error())
 		return
 	}
 
-	utilities.RespondDataJSON(writer, http.StatusOK, data)
+	response.RespondDataJSON(writer, http.StatusOK, data)
 
 }

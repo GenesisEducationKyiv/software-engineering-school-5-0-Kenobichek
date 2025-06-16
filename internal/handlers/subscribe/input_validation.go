@@ -1,4 +1,4 @@
-package utilities
+package subscribe
 
 import (
 	"errors"
@@ -49,5 +49,10 @@ func ParseAndValidateTokenInput(r *http.Request) (TokenInput, error) {
 	return TokenInput{
 		Token: token,
 	}, nil
+}
 
+func IsValidChannel(channel string) bool {
+	_, ok := SupportedChannels()[channel]
+
+	return ok
 }

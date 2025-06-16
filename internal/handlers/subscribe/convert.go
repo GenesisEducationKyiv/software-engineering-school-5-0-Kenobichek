@@ -1,12 +1,6 @@
-package utilities
+package subscribe
 
 import "fmt"
-
-func IsValidChannel(channel string) bool {
-	_, ok := SupportedChannels()[channel]
-
-	return ok
-}
 
 func ConvertFrequency(freq string) (int, error) {
 	mins, ok := FrequencyToMinutes()[freq]

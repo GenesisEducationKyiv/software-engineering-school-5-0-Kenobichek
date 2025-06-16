@@ -1,4 +1,4 @@
-package utilities
+package subscribe
 
 const (
 	hourlyMinutes = 60
