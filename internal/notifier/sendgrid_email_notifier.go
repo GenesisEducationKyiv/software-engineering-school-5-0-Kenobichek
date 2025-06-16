@@ -1,7 +1,7 @@
 package notifier
 
 import (
-	"Weather-Forecast-API/internal/external/sendgrid"
+	"Weather-Forecast-API/external/sendgrid"
 	"fmt"
 )
 
