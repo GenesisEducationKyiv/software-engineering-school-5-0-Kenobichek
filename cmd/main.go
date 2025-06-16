@@ -1,46 +1,57 @@
 package main
 
 import (
+	"Weather-Forecast-API/internal/scheduler"
 	"errors"
-	"github.com/joho/godotenv"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
+	"Weather-Forecast-API/config"
 	"Weather-Forecast-API/internal"
 	"Weather-Forecast-API/internal/db"
-	"Weather-Forecast-API/internal/scheduler"
 	"github.com/go-chi/chi/v5"
 )
 
 func main() {
-	err := godotenv.Load()
+	cfg, err := config.Load(".env")
 	if err != nil {
-		log.Println("Failed to load .env file.")
+		log.Fatalf("Error loading config: %v", err)
+		return
 	}
 
-	db.Init()
-	db.RunMigrations(db.DataBase)
+	database, err := db.Init(cfg.GetDatabaseDSN())
+	if err != nil {
+		log.Fatalf("Error initializing database: %v", err)
+	}
+
+	defer func() {
+		if err := database.Close(); err != nil {
+			log.Printf("Error closing database: %v", err)
+		}
+	}()
+
+	if err = db.RunMigrations(database); err != nil {
+		log.Printf("Error running database migrations: %v", err)
+		return
+	}
 
 	go scheduler.StartScheduler()
 
 	router := chi.NewRouter()
 	internal.RegisterRoutes(router)
 
-	port := os.Getenv("PORT")
-
 	srv := &http.Server{
-		Addr:         ":" + port,
+		Addr:         cfg.GetServerAddress(),
 		Handler:      router,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 
-	log.Printf("Server started at :%s\n", port)
+	log.Printf("Server started at %s\n", cfg.GetServerAddress())
 
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Fatalf("listen: %v\n", err)
+		log.Printf("listen: %v\n", err)
 	}
 }
