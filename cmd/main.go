@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// main is the entry point for the Weather Forecast API application. It loads configuration, initializes the database, runs migrations, starts the scheduler, sets up HTTP routing, and launches the server.
 func main() {
 	cfg, err := config.Load(".env")
 	if err != nil {

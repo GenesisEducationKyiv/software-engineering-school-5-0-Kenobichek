@@ -13,6 +13,8 @@ import (
 
 var DataBase *sql.DB
 
+// Init establishes a PostgreSQL database connection using the provided DSN.
+// It returns the database handle on success or an error if the connection or ping fails.
 func Init(dsn string) (*sql.DB, error) {
 	log.Println("Trying to establish database connection.")
 
@@ -33,6 +35,8 @@ func Init(dsn string) (*sql.DB, error) {
 	log.Println("Database connection established successfully.")
 	return DataBase, nil
 }
+// RunMigrations applies all up migrations to the connected PostgreSQL database.
+// Returns an error if the database connection is nil, migration driver initialization fails, or migration execution encounters an error other than no changes detected.
 func RunMigrations(dbConn *sql.DB) error {
 	if dbConn == nil {
 		return fmt.Errorf("database connection (dbConn) is nil in RunMigrations")

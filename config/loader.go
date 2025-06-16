@@ -5,6 +5,9 @@ import (
 	"strconv"
 )
 
+// fillConfig populates the provided Config struct with values from the given environment variable map.
+// It converts string values for "PORT" and "DB_PORT" to integers and assigns other configuration fields directly.
+// Returns an error if port values cannot be converted to integers.
 func fillConfig(config *Config, envVars map[string]string) error {
 	var err error
 

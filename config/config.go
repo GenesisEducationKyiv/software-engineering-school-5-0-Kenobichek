@@ -2,6 +2,8 @@ package config
 
 import "fmt"
 
+// Load reads configuration from the specified environment file, populates a Config struct, and validates it.
+// Returns the loaded Config or an error if parsing, filling, or validation fails.
 func Load(envPath string) (*Config, error) {
 	envVars, err := parseEnvFile(envPath)
 	if err != nil {

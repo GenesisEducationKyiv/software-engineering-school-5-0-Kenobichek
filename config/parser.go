@@ -7,6 +7,9 @@ import (
 	"strings"
 )
 
+// parseEnvFile reads environment variables from the current process and merges them with variables from the specified file.
+// The file is parsed line-by-line, supporting comments and quoted values. Variables from the file override existing ones.
+// Returns a map of combined environment variables and any error encountered during file reading. If the file does not exist, only the current environment is returned without error.
 func parseEnvFile(envPath string) (map[string]string, error) {
 	envVars := make(map[string]string)
 

@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// validateConfig checks the provided Config for required fields and valid values, returning an error listing all validation issues or nil if the configuration is valid.
 func validateConfig(config *Config) error {
 	var errors []string
 
