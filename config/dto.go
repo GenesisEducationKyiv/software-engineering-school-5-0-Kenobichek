@@ -1,10 +1,10 @@
 package config
 
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	SendGrid SendGridConfig
-	Weather  WeatherConfig
+	Server      ServerConfig
+	Database    DatabaseConfig
+	SendGrid    SendGridConfig
+	OpenWeather OpenWeatherConfig
 }
 
 type ServerConfig struct {
@@ -25,6 +25,6 @@ type SendGridConfig struct {
 	EmailFromName string
 }
 
-type WeatherConfig struct {
-	OpenWeatherAPIKey string
+type OpenWeatherConfig struct {
+	ApiKey string
 }

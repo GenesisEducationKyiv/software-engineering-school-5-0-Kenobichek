@@ -1,7 +1,7 @@
-package weather
+package weather_provider
 
 import (
-	"Weather-Forecast-API/internal/weather/models"
+	"Weather-Forecast-API/internal/weather_provider/models"
 	"context"
 )
 

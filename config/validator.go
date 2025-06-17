@@ -41,7 +41,7 @@ func validateConfig(config *Config) error {
 		}
 	}
 
-	if config.Weather.OpenWeatherAPIKey == "" {
+	if config.OpenWeather.ApiKey == "" {
 		errors = append(errors, "OPENWEATHERMAP_API_KEY is required")
 	}
 

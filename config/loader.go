@@ -31,7 +31,7 @@ func fillConfig(config *Config, envVars map[string]string) error {
 	config.SendGrid.EmailFrom = envVars["EMAIL_FROM"]
 	config.SendGrid.EmailFromName = envVars["EMAIL_FROM_NAME"]
 
-	config.Weather.OpenWeatherAPIKey = envVars["OPENWEATHERMAP_API_KEY"]
+	config.OpenWeather.ApiKey = envVars["OPENWEATHERMAP_API_KEY"]
 
 	return nil
 }

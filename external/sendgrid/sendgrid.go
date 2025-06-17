@@ -1,46 +1,25 @@
 package sendgrid
 
 import (
+	"Weather-Forecast-API/config"
 	"fmt"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
-	"os"
-
 	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
-type NotificationTarget struct {
-	Type    string
-	Address string
-}
-
-type SendgridConfig struct {
-	APIKey      string
-	SenderEmail string
-	SenderName  string
-}
-
-func (c *SendgridConfig) Validate() error {
-	if c.APIKey == "" {
-		return fmt.Errorf("sendgrid API key is required")
-	}
-	if c.SenderEmail == "" {
-		return fmt.Errorf("sender email is required")
-	}
-	return nil
+type Notifier interface {
+	Send(target NotificationTarget, message, subject string) error
 }
 
 type SendgridNotifier struct {
-	config *SendgridConfig
+	cfg    *config.Config
 	client *sendgrid.Client
 }
 
-func NewSendgridNotifier(config *SendgridConfig) (*SendgridNotifier, error) {
-	if err := config.Validate(); err != nil {
-		return nil, err
-	}
+func NewSendgridNotifier(cfg *config.Config) (*SendgridNotifier, error) {
 	return &SendgridNotifier{
-		config: config,
-		client: sendgrid.NewSendClient(config.APIKey),
+		cfg:    cfg,
+		client: sendgrid.NewSendClient(cfg.SendGrid.APIKey),
 	}, nil
 }
 
@@ -48,7 +27,7 @@ func (s *SendgridNotifier) Send(target NotificationTarget, message, subject stri
 	if target.Type != "email" {
 		return fmt.Errorf("invalid notification target for email")
 	}
-	from := mail.NewEmail(s.config.SenderName, s.config.SenderEmail)
+	from := mail.NewEmail(s.cfg.SendGrid.EmailFromName, s.cfg.SendGrid.EmailFrom)
 	to := mail.NewEmail("", target.Address)
 	m := mail.NewSingleEmail(from, subject, to, message, message)
 
@@ -60,13 +39,4 @@ func (s *SendgridNotifier) Send(target NotificationTarget, message, subject stri
 		return fmt.Errorf("sendgrid returned status code %d", resp.StatusCode)
 	}
 	return nil
-}
-
-func NewSendgridNotifierFromEnv() (*SendgridNotifier, error) {
-	config := &SendgridConfig{
-		APIKey:      os.Getenv("SENDGRID_API_KEY"),
-		SenderEmail: os.Getenv("EMAIL_FROM"),
-		SenderName:  os.Getenv("EMAIL_FROM_NAME"),
-	}
-	return NewSendgridNotifier(config)
 }

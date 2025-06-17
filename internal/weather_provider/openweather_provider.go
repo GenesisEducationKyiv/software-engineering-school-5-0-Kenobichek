@@ -1,8 +1,8 @@
-package weather
+package weather_provider
 
 import (
 	openweather2 "Weather-Forecast-API/external/openweather"
-	"Weather-Forecast-API/internal/weather/models"
+	"Weather-Forecast-API/internal/weather_provider/models"
 	"context"
 	"fmt"
 )
@@ -12,8 +12,8 @@ type OpenWeatherProvider struct {
 	openWeatherAPI *openweather2.OpenWeatherAPI
 }
 
-func NewOpenWeatherProvider(apiKey string) *OpenWeatherProvider {
-	return &OpenWeatherProvider{
+func NewOpenWeatherProvider(apiKey string) OpenWeatherProvider {
+	return OpenWeatherProvider{
 		geocoding:      openweather2.NewGeocodingService(apiKey),
 		openWeatherAPI: openweather2.NewWeatherService(apiKey),
 	}

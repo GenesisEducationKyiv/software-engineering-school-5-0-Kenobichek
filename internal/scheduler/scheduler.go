@@ -1,13 +1,13 @@
 package scheduler
 
 import (
+	"Weather-Forecast-API/config"
 	"Weather-Forecast-API/internal/repository"
 	"Weather-Forecast-API/internal/services/notification"
-	"Weather-Forecast-API/internal/weather"
+	"Weather-Forecast-API/internal/weather_provider"
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -15,13 +15,29 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-func StartScheduler() {
+type Scheduler struct {
+	cfg             *config.Config
+	notifService    notification.NotificationService
+	weatherProvider weather_provider.WeatherProvider
+}
+
+func NewScheduler(
+	cfg *config.Config,
+	notifService	notification.NotificationService,
+	weatherProvider weather_provider.WeatherProvider) Scheduler {
+	return Scheduler{
+		cfg:             cfg,
+		notifService:	notifService,
+		weatherProvider: weatherProvider,
+	}
+}
+
+func (s *Scheduler) Start() (*cron.Cron, error) {
 	log.Println("[Scheduler] Starting scheduler...")
 
 	template, err := repository.GetTemplateByName("weather_update")
 	if err != nil {
-		log.Printf("[Scheduler] Failed to get template: %v\n", err)
-		return
+		return nil, fmt.Errorf("[Scheduler] Failed to get template: %v", err)
 	}
 
 	cronScheduler := cron.New()
@@ -35,13 +51,10 @@ func StartScheduler() {
 		subs := repository.GetDueSubscriptions()
 		log.Printf("[Scheduler] Found %d due subscriptions\n", len(subs))
 
-		openWeatherProvider := weather.NewOpenWeatherProvider(os.Getenv("OPENWEATHERMAP_API_KEY"))
-		notificationSender := notification.NewNotificationService()
-
 		for _, sub := range subs {
 			log.Printf("[Scheduler] Processing subscription %d for city %s\n", sub.ID, sub.City)
 
-			weatherData, err := openWeatherProvider.GetWeatherByCity(ctx, sub.City)
+			weatherData, err := s.weatherProvider.GetWeatherByCity(ctx, sub.City)
 			if err != nil {
 				log.Printf("[Scheduler] Error fetching weather for %s: %v\n", sub.City, err)
 				continue
@@ -59,7 +72,7 @@ func StartScheduler() {
 			subject = strings.ReplaceAll(subject, "{{ city }}", sub.City)
 
 			log.Printf("[Scheduler] Sending notification to %s via %s\n", sub.ChannelValue, sub.ChannelType)
-			err = notificationSender.SendMessage(sub.ChannelType, sub.ChannelValue, message, subject)
+			err = s.notifService.SendMessage(sub.ChannelType, sub.ChannelValue, message, subject)
 			if err != nil {
 				log.Printf("[Scheduler] Error sending notification for subscription %d: %v\n", sub.ID, err)
 				continue
@@ -75,10 +88,11 @@ func StartScheduler() {
 		}
 	})
 	if err != nil {
-		log.Printf("[Scheduler] Failed to add cron job: %v\n", err)
-		return
+		return nil, fmt.Errorf("[Scheduler] Failed to add cron job: %v", err)
 	}
 
 	cronScheduler.Start()
 	log.Println("[Scheduler] Started successfully")
+
+	return cronScheduler, nil
 }

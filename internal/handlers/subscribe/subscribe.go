@@ -13,14 +13,15 @@ import (
 )
 
 type SubscribeHandler struct {
-	subscriptionService subscription.SubscriptionService
-	notificationService notification.NotificationService
+	subService   subscription.SubscriptionService
+	notifService notification.NotificationService
 }
 
-func NewSubscribeHandler() *SubscribeHandler {
+func NewSubscribeHandler(subService subscription.SubscriptionService,
+		notifService notification.NotificationService) *SubscribeHandler {
 	return &SubscribeHandler{
-		subscriptionService: subscription.NewSubscriptionService(),
-		notificationService: notification.NewNotificationService(),
+		subService:   subService,
+		notifService: notifService,
 	}
 }
 
@@ -53,14 +54,14 @@ func (h *SubscribeHandler) Subscribe(writer http.ResponseWriter, request *http.R
 		Token:            token,
 	}
 
-	if err := h.subscriptionService.Subscribe(sub); err != nil {
+	if err := h.subService.Subscribe(sub); err != nil {
 		response.RespondJSON(writer, http.StatusConflict, "Already subscribed or DB error")
 		return
 	}
 
 	message := strings.ReplaceAll(template.Message, "{{ confirm_token }}", token)
 
-	err = h.notificationService.SendMessage(input.ChannelType, input.ChannelValue, message, template.Subject)
+	err = h.notifService.SendMessage(input.ChannelType, input.ChannelValue, message, template.Subject)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusInternalServerError, "Failed to send message. Error: "+err.Error())
 		return
@@ -88,7 +89,7 @@ func (h *SubscribeHandler) Unsubscribe(writer http.ResponseWriter, request *http
 		return
 	}
 
-	if err := h.subscriptionService.Unsubscribe(sub); err != nil {
+	if err := h.subService.Unsubscribe(sub); err != nil {
 		if err.Error() == "not found" {
 			response.RespondJSON(writer, http.StatusNotFound, "Token not found")
 		} else {
@@ -99,7 +100,7 @@ func (h *SubscribeHandler) Unsubscribe(writer http.ResponseWriter, request *http
 
 	message := strings.ReplaceAll(template.Message, "{{ city }}", sub.City)
 
-	err = h.notificationService.SendMessage(sub.ChannelType, sub.ChannelValue, message, template.Subject)
+	err = h.notifService.SendMessage(sub.ChannelType, sub.ChannelValue, message, template.Subject)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusInternalServerError, "Failed to send message. Error: "+err.Error())
 		return
@@ -121,7 +122,7 @@ func (h *SubscribeHandler) Confirm(writer http.ResponseWriter, request *http.Req
 		return
 	}
 
-	if err := h.subscriptionService.Confirm(sub); err != nil {
+	if err := h.subService.Confirm(sub); err != nil {
 		if err.Error() == "not found" {
 			response.RespondJSON(writer, http.StatusNotFound, "Token not found")
 		} else {

@@ -3,6 +3,9 @@ package main
 import (
 	"Weather-Forecast-API/internal/routes"
 	"Weather-Forecast-API/internal/scheduler"
+	"Weather-Forecast-API/internal/services/notification"
+	"Weather-Forecast-API/internal/services/subscription"
+	"Weather-Forecast-API/internal/weather_provider"
 	"errors"
 	"log"
 	"net/http"
@@ -10,7 +13,6 @@ import (
 
 	"Weather-Forecast-API/config"
 	"Weather-Forecast-API/internal/db"
-	"github.com/go-chi/chi/v5"
 )
 
 func main() {
@@ -36,14 +38,24 @@ func main() {
 		return
 	}
 
-	go scheduler.StartScheduler()
+	weatherProvider := weather_provider.NewOpenWeatherProvider(cfg.OpenWeather.ApiKey)
+	subscriptionService := subscription.NewSubscriptionService()
+	notificationService := notification.NewNotificationService(cfg)
 
-	router := chi.NewRouter()
-	routes.RegisterRoutes(router)
+	newScheduler := scheduler.NewScheduler(cfg, notificationService, &weatherProvider)
+	go func() {
+		_, err := newScheduler.Start()
+		if err != nil {
+			log.Printf("Error starting newScheduler: %v", err)
+		}
+	}()
+
+	router := routes.NewRouter(subscriptionService, notificationService)
+	router.RegisterRoutes()
 
 	srv := &http.Server{
 		Addr:         cfg.GetServerAddress(),
-		Handler:      router,
+		Handler:      router.GetRouter(),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
