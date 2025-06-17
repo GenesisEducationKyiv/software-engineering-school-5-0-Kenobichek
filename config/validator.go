@@ -8,7 +8,7 @@ import (
 func validateConfig(config *Config) error {
 	var errors []string
 
-	if config.Database.Port == 0 {
+	if config.Server.Port == 0 {
 		errors = append(errors, "PORT is required")
 	} else if config.Server.Port < 1 || config.Server.Port > 65535 {
 		errors = append(errors, "PORT must be between 1 and 65535")
