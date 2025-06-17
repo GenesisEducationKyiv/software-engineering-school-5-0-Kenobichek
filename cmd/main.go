@@ -16,11 +16,13 @@ import (
 )
 
 func main() {
-	cfg, err := config.Load(".env")
+	cfg, err := config.MustLoad()
 	if err != nil {
 		log.Fatalf("Error loading config: %v", err)
 		return
 	}
+
+	config.Usage()
 
 	database, err := db.Init(cfg.GetDatabaseDSN())
 	if err != nil {
@@ -38,7 +40,7 @@ func main() {
 		return
 	}
 
-	weatherProvider := weather_provider.NewOpenWeatherProvider(cfg.OpenWeather.ApiKey)
+	weatherProvider := weather_provider.NewOpenWeatherProvider(cfg.OpenWeather.APIKey)
 	subscriptionService := subscription.NewSubscriptionService()
 	notificationService := notification.NewNotificationService(cfg)
 

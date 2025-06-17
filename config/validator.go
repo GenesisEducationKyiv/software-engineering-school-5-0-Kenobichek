@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func validateConfig(config *Config) error {
+func validate(config *Config) error {
 	var errors []string
 
 	if config.Server.Port == 0 {
@@ -41,10 +41,15 @@ func validateConfig(config *Config) error {
 		}
 	}
 
-	if config.OpenWeather.ApiKey == "" {
+	if config.OpenWeather.APIKey == "" {
 		errors = append(errors, "OPENWEATHERMAP_API_KEY is required")
 	}
-
+	if config.OpenWeather.WeatherAPIURL == "" {
+		errors = append(errors, "WEATHER_API_URL is required")
+	}
+	if config.OpenWeather.GeocodingAPIURL == "" {
+		errors = append(errors, "GEOCODING_API_URL is required")
+	}
 	if len(errors) > 0 {
 		return fmt.Errorf("config validation errors:\n- %s", strings.Join(errors, "\n- "))
 	}
