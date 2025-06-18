@@ -1,12 +1,15 @@
 package main
 
 import (
+	"Weather-Forecast-API/external/openweather"
+	"Weather-Forecast-API/external/sendgrid_email_api"
 	"Weather-Forecast-API/internal/routes"
 	"Weather-Forecast-API/internal/scheduler"
 	"Weather-Forecast-API/internal/services/notification"
 	"Weather-Forecast-API/internal/services/subscription"
 	"Weather-Forecast-API/internal/weather_provider"
 	"errors"
+	"github.com/sendgrid/sendgrid-go"
 	"log"
 	"net/http"
 	"time"
@@ -16,6 +19,9 @@ import (
 )
 
 func main() {
+	//TODO: Move core logic to internal/app/app.go,
+	// add config.go for env/settings, and invoke app.Run(ctx) from main.
+
 	cfg, err := config.MustLoad()
 	if err != nil {
 		log.Fatalf("Error loading config: %v", err)
@@ -40,11 +46,17 @@ func main() {
 		return
 	}
 
-	weatherProvider := weather_provider.NewOpenWeatherProvider(cfg.OpenWeather.APIKey)
-	subscriptionService := subscription.NewSubscriptionService()
-	notificationService := notification.NewNotificationService(cfg)
+	sgClient := sendgrid.NewSendClient(cfg.SendGrid.APIKey)
+	sgNotifier := sendgrid_email_api.NewSendgridNotifier(sgClient, cfg)
 
-	newScheduler := scheduler.NewScheduler(cfg, notificationService, &weatherProvider)
+	geoSvc := openweather.NewOpenWeatherGeocodingService(cfg)
+	owAPI := openweather.NewOpenWeatherAPI(cfg)
+
+	weatherProvider := weather_provider.NewOpenWeatherProvider(&geoSvc, owAPI)
+	subscriptionService := subscription.NewSubscriptionService()
+	notificationService := notification.NewNotificationService(&sgNotifier)
+
+	newScheduler := scheduler.NewScheduler(cfg, &notificationService, &weatherProvider)
 	go func() {
 		_, err := newScheduler.Start()
 		if err != nil {
@@ -52,7 +64,7 @@ func main() {
 		}
 	}()
 
-	router := routes.NewRouter(subscriptionService, notificationService)
+	router := routes.NewRouter(subscriptionService, &notificationService)
 	router.RegisterRoutes()
 
 	srv := &http.Server{

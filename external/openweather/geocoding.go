@@ -1,6 +1,7 @@
 package openweather
 
 import (
+	"Weather-Forecast-API/config"
 	"Weather-Forecast-API/internal/weather_provider/models"
 	"context"
 	"encoding/json"
@@ -9,21 +10,27 @@ import (
 	"net/url"
 )
 
-type GeocodingService struct {
-	apiKey  string
-	baseURL string
+type GeocodingProvider interface {
+	GetCoordinates(ctx context.Context, city string) (models.Coordinates, error)
 }
 
-func NewGeocodingService(apiKey string) *GeocodingService {
-	return &GeocodingService{
-		apiKey:  apiKey,
-		baseURL: "http://api.openweathermap.org/geo/1.0/direct",
+type OpenWeatherGeocoding interface {
+	GetCoordinates(ctx context.Context, city string) (models.Coordinates, error)
+}
+
+type OpenWeatherGeocodingService struct {
+	cfg *config.Config
+}
+
+func NewOpenWeatherGeocodingService(cfg *config.Config) OpenWeatherGeocodingService {
+	return OpenWeatherGeocodingService{
+		cfg: cfg,
 	}
 }
 
-func (g *GeocodingService) GetCoordinates(ctx context.Context, city string) (models.Coordinates, error) {
+func (g *OpenWeatherGeocodingService) GetCoordinates(ctx context.Context, city string) (models.Coordinates, error) {
 	geoURL := fmt.Sprintf("%s?q=%s&limit=1&appid=%s",
-		g.baseURL, url.QueryEscape(city), g.apiKey)
+		g.cfg.OpenWeather.GeocodingAPIURL, url.QueryEscape(city), g.cfg.OpenWeather.APIKey)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, geoURL, nil)
 	if err != nil {

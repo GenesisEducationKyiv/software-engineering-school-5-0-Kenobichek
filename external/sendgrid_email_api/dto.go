@@ -1,4 +1,4 @@
-package sendgrid
+package sendgrid_email_api
 
 type NotificationTarget struct {
 	Type    string

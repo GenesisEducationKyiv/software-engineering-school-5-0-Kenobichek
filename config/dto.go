@@ -20,9 +20,9 @@ type DatabaseConfig struct {
 }
 
 type SendGridConfig struct {
-	APIKey        string `envconfig:"SENDGRID_API_KEY" required:"true"`
-	EmailFrom     string `envconfig:"EMAIL_FROM" required:"true"`
-	EmailFromName string `envconfig:"EMAIL_FROM_NAME" required:"true"`
+	APIKey      string `envconfig:"SENDGRID_API_KEY" required:"true"`
+	SenderEmail string `envconfig:"SENDER_EMAIL" required:"true"`
+	SenderName  string `envconfig:"SENDER_NAME" required:"true"`
 }
 
 type OpenWeatherConfig struct {

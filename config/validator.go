@@ -33,10 +33,10 @@ func validate(config *Config) error {
 	}
 
 	if config.SendGrid.APIKey != "" {
-		if config.SendGrid.EmailFrom == "" {
+		if config.SendGrid.SenderEmail == "" {
 			errors = append(errors, "EMAIL_FROM is required when SENDGRID_API_KEY is set")
 		}
-		if config.SendGrid.EmailFromName == "" {
+		if config.SendGrid.SenderName == "" {
 			errors = append(errors, "EMAIL_FROM_NAME is required when SENDGRID_API_KEY is set")
 		}
 	}

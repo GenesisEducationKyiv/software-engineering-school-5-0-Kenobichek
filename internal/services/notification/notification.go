@@ -1,7 +1,7 @@
 package notification
 
 import (
-	"Weather-Forecast-API/config"
+	"Weather-Forecast-API/external/sendgrid_email_api"
 	"Weather-Forecast-API/internal/notifier"
 	"fmt"
 )
@@ -10,15 +10,17 @@ type NotificationService interface {
 	SendMessage(channelType string, channelValue string, message string, subject string) error
 }
 
-func NewNotificationService(cfg *config.Config) NotificationService {
-	return &notificationService{cfg: cfg}
+func NewNotificationService(notifier sendgrid_email_api.Notifier) NotificationSender {
+	return NotificationSender{
+		notifier: notifier,
+	}
 }
 
-type notificationService struct {
-	cfg *config.Config
+type NotificationSender struct {
+	notifier sendgrid_email_api.Notifier
 }
 
-func (s *notificationService) SendMessage(
+func (s *NotificationSender) SendMessage(
 	channelType string,
 	channelValue string,
 	message string,
@@ -26,10 +28,7 @@ func (s *notificationService) SendMessage(
 
 	switch channelType {
 	case "email":
-		n, err := notifier.NewSendGridEmailNotifier(s.cfg)
-		if err != nil {
-			return err
-		}
+		n := notifier.NewSendGridEmailNotifier(s.notifier)
 		return n.Send(channelValue, message, subject)
 	default:
 		return fmt.Errorf("unsupported channel type: %s", channelType)

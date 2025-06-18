@@ -1,9 +1,7 @@
 package notifier
 
 import (
-	"Weather-Forecast-API/config"
-	"Weather-Forecast-API/external/sendgrid"
-	"fmt"
+	"Weather-Forecast-API/external/sendgrid_email_api"
 )
 
 type EmailNotifier interface {
@@ -11,27 +9,19 @@ type EmailNotifier interface {
 }
 
 type SendGridEmailNotifier struct {
-	sendgrid sendgrid.Notifier
-	cfg      *config.Config
+	notifier sendgrid_email_api.Notifier
 }
 
-var newSendgridNotifier = sendgrid.NewSendgridNotifier
-
-func NewSendGridEmailNotifier(cfg *config.Config) (SendGridEmailNotifier, error) {
-	sg, err := newSendgridNotifier(cfg)
-	if err != nil {
-		return SendGridEmailNotifier{}, fmt.Errorf("failed to initialize SendGrid notifier: %w", err)
-	}
+func NewSendGridEmailNotifier(notifier sendgrid_email_api.Notifier) SendGridEmailNotifier {
 	return SendGridEmailNotifier{
-		sendgrid: sg,
-		cfg:      cfg,
-	}, nil
+		notifier: notifier,
+	}
 }
 
-func (n SendGridEmailNotifier) Send(to, message, subject string) error {
-	target := sendgrid.NotificationTarget{
+func (n *SendGridEmailNotifier) Send(to, message, subject string) error {
+	target := sendgrid_email_api.NotificationTarget{
 		Type:    "email",
 		Address: to,
 	}
-	return n.sendgrid.Send(target, message, subject)
+	return n.notifier.Send(target, message, subject)
 }
