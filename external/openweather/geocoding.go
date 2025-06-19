@@ -14,12 +14,15 @@ type GeocodingProvider interface {
 }
 
 type OpenWeatherGeocodingService struct {
-	cfg *config.Config
+	cfg        *config.Config
+	httpClient *http.Client
 }
 
-func NewOpenWeatherGeocodingService(cfg *config.Config) OpenWeatherGeocodingService {
+func NewOpenWeatherGeocodingService(cfg *config.Config,
+	httpClient *http.Client) OpenWeatherGeocodingService {
 	return OpenWeatherGeocodingService{
-		cfg: cfg,
+		cfg:        cfg,
+		httpClient: httpClient,
 	}
 }
 
@@ -32,7 +35,7 @@ func (g *OpenWeatherGeocodingService) GetCoordinates(ctx context.Context, city s
 		return Coordinates{}, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := g.httpClient.Do(req)
 	if err != nil {
 		return Coordinates{}, fmt.Errorf("failed to execute request: %w", err)
 	}

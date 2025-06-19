@@ -5,6 +5,7 @@ import (
 	"Weather-Forecast-API/external/sendgrid_email_api"
 	"Weather-Forecast-API/internal/handlers/subscribe"
 	"Weather-Forecast-API/internal/handlers/weather"
+	"Weather-Forecast-API/internal/httpclient"
 	"Weather-Forecast-API/internal/notifier"
 	"Weather-Forecast-API/internal/routes"
 	"Weather-Forecast-API/internal/scheduler"
@@ -53,8 +54,10 @@ func main() {
 	sgNotifier := sendgrid_email_api.NewSendgridNotifier(sgClient, cfg)
 	sgEmNotifier := notifier.NewSendGridEmailNotifier(&sgNotifier)
 
-	geoSvc := openweather.NewOpenWeatherGeocodingService(cfg)
-	owAPI := openweather.NewOpenWeatherAPI(cfg)
+	httpClient := httpclient.New()
+
+	geoSvc := openweather.NewOpenWeatherGeocodingService(cfg, httpClient)
+	owAPI := openweather.NewOpenWeatherAPI(cfg, httpClient)
 
 	weatherProvider := weather_provider.NewOpenWeatherProvider(&geoSvc, owAPI)
 	subscriptionService := subscription.NewSubscriptionService()

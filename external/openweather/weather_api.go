@@ -10,12 +10,14 @@ import (
 )
 
 type OpenWeatherAPI struct {
-	cfg *config.Config
+	cfg        *config.Config
+	httpClient *http.Client
 }
 
-func NewOpenWeatherAPI(cfg *config.Config) OpenWeatherAPI {
+func NewOpenWeatherAPI(cfg *config.Config, httpClient *http.Client) OpenWeatherAPI {
 	return OpenWeatherAPI{
-		cfg: cfg,
+		cfg:        cfg,
+		httpClient: httpClient,
 	}
 }
 
@@ -28,7 +30,7 @@ func (w *OpenWeatherAPI) GetWeather(ctx context.Context, coords Coordinates) (We
 		return WeatherData{}, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := w.httpClient.Do(req)
 	if err != nil {
 		return WeatherData{}, fmt.Errorf("failed to execute request: %w", err)
 	}
