@@ -1,7 +1,7 @@
 package notification
 
 import (
-	"Weather-Forecast-API/internal/constants"
+	"Weather-Forecast-API/external/sendgrid_email_api"
 	"Weather-Forecast-API/internal/notifier"
 	"fmt"
 )
@@ -27,7 +27,7 @@ func (s *NotificationSender) SendMessage(
 	subject string) error {
 
 	switch channelType {
-	case constants.ChannelEmail:
+	case string(sendgrid_email_api.ChannelEmail):
 		return s.notifier.Send(channelValue, message, subject)
 	default:
 		return fmt.Errorf("unsupported channel type: %s", channelType)

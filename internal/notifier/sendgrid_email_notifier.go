@@ -2,7 +2,6 @@ package notifier
 
 import (
 	"Weather-Forecast-API/external/sendgrid_email_api"
-	"Weather-Forecast-API/internal/constants"
 	"fmt"
 )
 
@@ -22,7 +21,7 @@ func NewSendGridEmailNotifier(notifier sendgrid_email_api.Notifier) SendGridEmai
 
 func (n *SendGridEmailNotifier) Send(to, message, subject string) error {
 	target := sendgrid_email_api.NotificationTarget{
-		Type:    constants.ChannelEmail,
+		Type:    sendgrid_email_api.ChannelEmail,
 		Address: to,
 	}
 	if err := n.notifier.Send(target, message, subject); err != nil {

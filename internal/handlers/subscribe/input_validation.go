@@ -1,7 +1,7 @@
 package subscribe
 
 import (
-	"Weather-Forecast-API/internal/constants"
+	"Weather-Forecast-API/external/sendgrid_email_api"
 	"errors"
 	"github.com/go-chi/chi/v5"
 	"net/http"
@@ -17,7 +17,7 @@ func ParseAndValidateSubscribeInput(r *http.Request) (SubscribeInput, error) {
 	}
 	channelType := strings.TrimSpace(r.FormValue("channelType"))
 	if channelType == "" {
-		channelType = constants.ChannelEmail
+		channelType = string(sendgrid_email_api.ChannelEmail)
 	}
 	if !IsValidChannel(channelType) {
 		return SubscribeInput{}, errors.New("unsupported channelType")

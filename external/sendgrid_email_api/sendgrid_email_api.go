@@ -2,7 +2,6 @@ package sendgrid_email_api
 
 import (
 	"Weather-Forecast-API/config"
-	"Weather-Forecast-API/internal/constants"
 	"fmt"
 	"github.com/sendgrid/rest"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
@@ -29,7 +28,7 @@ func NewSendgridNotifier(client SendGridClient, cfg *config.Config) SendgridNoti
 }
 
 func (s *SendgridNotifier) Send(target NotificationTarget, message, subject string) error {
-	if target.Type != constants.ChannelEmail {
+	if target.Type != ChannelEmail {
 		return fmt.Errorf("invalid notification target type %s, expected email", target.Type)
 	}
 

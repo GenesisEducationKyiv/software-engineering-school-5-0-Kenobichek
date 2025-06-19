@@ -1,12 +1,12 @@
 package sendgrid_email_api
 
-type NotificationTarget struct {
-	Type    string
-	Address string
-}
+type ChannelType string
 
-type Config struct {
-	APIKey      string
-	SenderEmail string
-	SenderName  string
+const (
+	ChannelEmail ChannelType = "email"
+)
+
+type NotificationTarget struct {
+	Type    ChannelType
+	Address string
 }
