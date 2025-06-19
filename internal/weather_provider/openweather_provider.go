@@ -4,6 +4,7 @@ import (
 	"Weather-Forecast-API/external/openweather"
 	"context"
 	"fmt"
+	"strings"
 )
 
 type OpenWeatherProvider struct {
@@ -21,6 +22,13 @@ func NewOpenWeatherProvider(
 }
 
 func (wp *OpenWeatherProvider) GetWeatherByCity(ctx context.Context, city string) (openweather.WeatherData, error) {
+	if err := ctx.Err(); err != nil {
+		return openweather.WeatherData{}, err
+	}
+	if strings.TrimSpace(city) == "" {
+		return openweather.WeatherData{}, fmt.Errorf("city must not be empty")
+	}
+
 	coords, err := wp.geocoding.GetCoordinates(ctx, city)
 	if err != nil {
 		return openweather.WeatherData{}, fmt.Errorf("failed to get coordinates: %w", err)
