@@ -59,7 +59,7 @@ func main() {
 	geoSvc := openweather.NewOpenWeatherGeocodingService(cfg, httpClient)
 	owAPI := openweather.NewOpenWeatherAPI(cfg, httpClient)
 
-	weatherProvider := weather_provider.NewOpenWeatherProvider(&geoSvc, owAPI)
+	weatherProvider := weather_provider.NewOpenWeatherProvider(&geoSvc, &owAPI)
 	subscriptionService := subscription.NewSubscriptionService()
 	notificationService := notification.NewNotificationService(&sgEmNotifier)
 
