@@ -1,10 +1,10 @@
 package weather_provider
 
 import (
-	"Weather-Forecast-API/internal/weather_provider/models"
+	"Weather-Forecast-API/external/openweather"
 	"context"
 )
 
 type WeatherProvider interface {
-	GetWeatherByCity(ctx context.Context, city string) (models.WeatherData, error)
+	GetWeatherByCity(ctx context.Context, city string) (openweather.WeatherData, error)
 }

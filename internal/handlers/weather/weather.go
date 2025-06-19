@@ -8,15 +8,19 @@ import (
 	"time"
 )
 
+type WeatherManager interface {
+	GetWeather(writer http.ResponseWriter, request *http.Request)
+}
+
 type WeatherHandler struct {
-	provider weather_provider.WeatherProvider
-	timeout  time.Duration
+	weatherProvider weather_provider.WeatherProvider
+	requestTimeout  time.Duration
 }
 
 func NewWeatherHandler(provider weather_provider.WeatherProvider, timeout time.Duration) WeatherHandler {
 	return WeatherHandler{
-		provider: provider,
-		timeout:  timeout,
+		weatherProvider: provider,
+		requestTimeout:  timeout,
 	}
 }
 
@@ -27,10 +31,10 @@ func (h *WeatherHandler) GetWeather(writer http.ResponseWriter, request *http.Re
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(request.Context(), h.timeout)
+	ctx, cancel := context.WithTimeout(request.Context(), h.requestTimeout)
 	defer cancel()
 
-	data, err := h.provider.GetWeatherByCity(ctx, city)
+	data, err := h.weatherProvider.GetWeatherByCity(ctx, city)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusBadRequest, "Failed to get weather: "+err.Error())
 		return

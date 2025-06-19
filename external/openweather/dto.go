@@ -1,12 +1,8 @@
-package models
+package openweather
 
 type Coordinates struct {
 	Lat float64 `json:"lat"`
 	Lon float64 `json:"lon"`
-}
-
-type OpenWeatherConfig struct {
-	APIKey string
 }
 
 type WeatherData struct {

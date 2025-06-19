@@ -2,7 +2,6 @@ package openweather
 
 import (
 	"Weather-Forecast-API/config"
-	"Weather-Forecast-API/internal/weather_provider/models"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -20,18 +19,18 @@ func NewOpenWeatherAPI(cfg *config.Config) OpenWeatherAPI {
 	}
 }
 
-func (w *OpenWeatherAPI) GetWeather(ctx context.Context, coords models.Coordinates) (models.WeatherData, error) {
+func (w *OpenWeatherAPI) GetWeather(ctx context.Context, coords Coordinates) (WeatherData, error) {
 	weatherURL := fmt.Sprintf("%s?lat=%f&lon=%f&appid=%s&units=metric",
 		w.cfg.OpenWeather.WeatherAPIURL, coords.Lat, coords.Lon, w.cfg.OpenWeather.APIKey)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, weatherURL, nil)
 	if err != nil {
-		return models.WeatherData{}, fmt.Errorf("failed to create request: %w", err)
+		return WeatherData{}, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return models.WeatherData{}, fmt.Errorf("failed to execute request: %w", err)
+		return WeatherData{}, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
@@ -41,7 +40,7 @@ func (w *OpenWeatherAPI) GetWeather(ctx context.Context, coords models.Coordinat
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return models.WeatherData{}, fmt.Errorf("API returned status code: %d", resp.StatusCode)
+		return WeatherData{}, fmt.Errorf("API returned status code: %d", resp.StatusCode)
 	}
 
 	var data struct {
@@ -55,14 +54,14 @@ func (w *OpenWeatherAPI) GetWeather(ctx context.Context, coords models.Coordinat
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return models.WeatherData{}, fmt.Errorf("failed to decode response: %w", err)
+		return WeatherData{}, fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	if len(data.Weather) == 0 {
-		return models.WeatherData{}, fmt.Errorf("no weather data available")
+		return WeatherData{}, fmt.Errorf("no weather data available")
 	}
 
-	weatherData := models.WeatherData{
+	weatherData := WeatherData{
 		Temperature: data.Main.Temperature,
 		Humidity:    data.Main.Humidity,
 		Description: data.Weather[0].Description,

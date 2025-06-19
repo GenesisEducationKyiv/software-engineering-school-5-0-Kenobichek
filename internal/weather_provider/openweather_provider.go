@@ -2,7 +2,6 @@ package weather_provider
 
 import (
 	"Weather-Forecast-API/external/openweather"
-	"Weather-Forecast-API/internal/weather_provider/models"
 	"context"
 	"fmt"
 )
@@ -21,18 +20,18 @@ func NewOpenWeatherProvider(
 	}
 }
 
-func (wp *OpenWeatherProvider) GetWeatherByCity(ctx context.Context, city string) (models.WeatherData, error) {
+func (wp *OpenWeatherProvider) GetWeatherByCity(ctx context.Context, city string) (openweather.WeatherData, error) {
 	coords, err := wp.geocoding.GetCoordinates(ctx, city)
 	if err != nil {
-		return models.WeatherData{}, fmt.Errorf("failed to get coordinates: %w", err)
+		return openweather.WeatherData{}, fmt.Errorf("failed to get coordinates: %w", err)
 	}
 
 	openWeatherData, err := wp.openWeatherAPI.GetWeather(ctx, coords)
 	if err != nil {
-		return models.WeatherData{}, fmt.Errorf("failed to get weather: %w", err)
+		return openweather.WeatherData{}, fmt.Errorf("failed to get weather: %w", err)
 	}
 
-	weatherData := models.WeatherData{
+	weatherData := openweather.WeatherData{
 		Temperature: openWeatherData.Temperature,
 		Humidity:    openWeatherData.Humidity,
 		Description: openWeatherData.Description,

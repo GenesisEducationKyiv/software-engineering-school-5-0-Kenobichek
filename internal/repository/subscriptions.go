@@ -8,10 +8,9 @@ import (
 	"time"
 
 	"Weather-Forecast-API/internal/db"
-	"Weather-Forecast-API/internal/models"
 )
 
-func CreateSubscription(subscription *models.Subscription) error {
+func CreateSubscription(subscription *Subscription) error {
 	subscription.NextNotifiedAt = time.Now().Add(time.Duration(subscription.FrequencyMinutes) * time.Minute)
 
 	_, err := db.DataBase.Exec(`
@@ -68,21 +67,21 @@ func UnsubscribeByToken(token string) error {
 	return nil
 }
 
-func GetDueSubscriptions() []models.Subscription {
+func GetDueSubscriptions() []Subscription {
 	rows, err := db.DataBase.Query(
 		`	SELECT id, channel_type, channel_value, city, frequency_minutes
 			FROM subscriptions
 			WHERE confirmed = TRUE AND next_notified_at <= NOW()`,
 	)
 
-	var subs []models.Subscription
+	var subs []Subscription
 
 	if err != nil {
 		return subs
 	}
 
 	for rows.Next() {
-		var s models.Subscription
+		var s Subscription
 
 		if err := rows.Scan(&s.ID, &s.ChannelType, &s.ChannelValue, &s.City, &s.FrequencyMinutes); err != nil {
 			return subs
@@ -106,14 +105,14 @@ func UpdateNextNotification(id int, next time.Time) error {
 	return nil
 }
 
-func GetSubscriptionByToken(token string) (*models.Subscription, error) {
+func GetSubscriptionByToken(token string) (*Subscription, error) {
 	row := db.DataBase.QueryRow(`
 		SELECT id, channel_type, channel_value, city, frequency_minutes, confirmed, token, next_notified_at, created_at
 		FROM subscriptions
 		WHERE token = $1
 	`, token)
 
-	var subscription models.Subscription
+	var subscription Subscription
 	err := row.Scan(
 		&subscription.ID,
 		&subscription.ChannelType,

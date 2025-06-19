@@ -1,4 +1,4 @@
-package models
+package repository
 
 import "time"
 
@@ -12,4 +12,9 @@ type Subscription struct {
 	Token            string
 	NextNotifiedAt   time.Time
 	CreatedAt        time.Time
+}
+
+type MessageTemplate struct {
+	Subject string
+	Message string
 }

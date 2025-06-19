@@ -1,7 +1,6 @@
 package subscribe
 
 import (
-	"Weather-Forecast-API/internal/models"
 	"Weather-Forecast-API/internal/repository"
 	"Weather-Forecast-API/internal/response"
 	"Weather-Forecast-API/internal/services/notification"
@@ -12,20 +11,26 @@ import (
 	"net/http"
 )
 
-type SubscribeHandler struct {
-	subService   subscription.SubscriptionService
-	notifService notification.NotificationService
+type SubscriptionManager interface {
+	Subscribe(writer http.ResponseWriter, request *http.Request)
+	Unsubscribe(writer http.ResponseWriter, request *http.Request)
+	Confirm(writer http.ResponseWriter, request *http.Request)
 }
 
-func NewSubscribeHandler(subService subscription.SubscriptionService,
-		notifService notification.NotificationService) *SubscribeHandler {
-	return &SubscribeHandler{
-		subService:   subService,
-		notifService: notifService,
+type SubscriptionHandler struct {
+	subscriptionService subscription.SubscriptionService
+	notificationService notification.NotificationService
+}
+
+func NewSubscribeHandler(subscriptionService subscription.SubscriptionService,
+	notificationService notification.NotificationService) SubscriptionHandler {
+	return SubscriptionHandler{
+		subscriptionService: subscriptionService,
+		notificationService: notificationService,
 	}
 }
 
-func (h *SubscribeHandler) Subscribe(writer http.ResponseWriter, request *http.Request) {
+func (h *SubscriptionHandler) Subscribe(writer http.ResponseWriter, request *http.Request) {
 	input, err := ParseAndValidateSubscribeInput(request)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusBadRequest, err.Error())
@@ -46,7 +51,7 @@ func (h *SubscribeHandler) Subscribe(writer http.ResponseWriter, request *http.R
 
 	token := uuid.NewString()
 
-	sub := &models.Subscription{
+	sub := &repository.Subscription{
 		ChannelType:      input.ChannelType,
 		ChannelValue:     input.ChannelValue,
 		City:             input.City,
@@ -54,14 +59,14 @@ func (h *SubscribeHandler) Subscribe(writer http.ResponseWriter, request *http.R
 		Token:            token,
 	}
 
-	if err := h.subService.Subscribe(sub); err != nil {
+	if err := h.subscriptionService.Subscribe(sub); err != nil {
 		response.RespondJSON(writer, http.StatusConflict, "Already subscribed or DB error")
 		return
 	}
 
 	message := strings.ReplaceAll(template.Message, "{{ confirm_token }}", token)
 
-	err = h.notifService.SendMessage(input.ChannelType, input.ChannelValue, message, template.Subject)
+	err = h.notificationService.SendMessage(input.ChannelType, input.ChannelValue, message, template.Subject)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusInternalServerError, "Failed to send message. Error: "+err.Error())
 		return
@@ -70,7 +75,7 @@ func (h *SubscribeHandler) Subscribe(writer http.ResponseWriter, request *http.R
 	response.RespondJSON(writer, http.StatusOK, "Subscription successful. Confirmation sent.")
 }
 
-func (h *SubscribeHandler) Unsubscribe(writer http.ResponseWriter, request *http.Request) {
+func (h *SubscriptionHandler) Unsubscribe(writer http.ResponseWriter, request *http.Request) {
 	input, err := ParseAndValidateTokenInput(request)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusBadRequest, err.Error())
@@ -89,8 +94,8 @@ func (h *SubscribeHandler) Unsubscribe(writer http.ResponseWriter, request *http
 		return
 	}
 
-	if err := h.subService.Unsubscribe(sub); err != nil {
-		if err.Error() == "not found" {
+	if err := h.subscriptionService.Unsubscribe(sub); err != nil {
+		if strings.Contains(err.Error(), "not found") {
 			response.RespondJSON(writer, http.StatusNotFound, "Token not found")
 		} else {
 			response.RespondJSON(writer, http.StatusBadRequest, "Failed to confirm subscription: "+err.Error())
@@ -100,7 +105,7 @@ func (h *SubscribeHandler) Unsubscribe(writer http.ResponseWriter, request *http
 
 	message := strings.ReplaceAll(template.Message, "{{ city }}", sub.City)
 
-	err = h.notifService.SendMessage(sub.ChannelType, sub.ChannelValue, message, template.Subject)
+	err = h.notificationService.SendMessage(sub.ChannelType, sub.ChannelValue, message, template.Subject)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusInternalServerError, "Failed to send message. Error: "+err.Error())
 		return
@@ -109,7 +114,7 @@ func (h *SubscribeHandler) Unsubscribe(writer http.ResponseWriter, request *http
 	response.RespondJSON(writer, http.StatusOK, "You have been unsubscribed successfully.")
 }
 
-func (h *SubscribeHandler) Confirm(writer http.ResponseWriter, request *http.Request) {
+func (h *SubscriptionHandler) Confirm(writer http.ResponseWriter, request *http.Request) {
 	input, err := ParseAndValidateTokenInput(request)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusBadRequest, err.Error())
@@ -122,8 +127,8 @@ func (h *SubscribeHandler) Confirm(writer http.ResponseWriter, request *http.Req
 		return
 	}
 
-	if err := h.subService.Confirm(sub); err != nil {
-		if err.Error() == "not found" {
+	if err := h.subscriptionService.Confirm(sub); err != nil {
+		if strings.Contains(err.Error(), "not found") {
 			response.RespondJSON(writer, http.StatusNotFound, "Token not found")
 		} else {
 			response.RespondJSON(writer, http.StatusBadRequest, "Failed to confirm subscription: "+err.Error())

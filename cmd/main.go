@@ -3,6 +3,9 @@ package main
 import (
 	"Weather-Forecast-API/external/openweather"
 	"Weather-Forecast-API/external/sendgrid_email_api"
+	"Weather-Forecast-API/internal/handlers/subscribe"
+	"Weather-Forecast-API/internal/handlers/weather"
+	"Weather-Forecast-API/internal/notifier"
 	"Weather-Forecast-API/internal/routes"
 	"Weather-Forecast-API/internal/scheduler"
 	"Weather-Forecast-API/internal/services/notification"
@@ -48,13 +51,14 @@ func main() {
 
 	sgClient := sendgrid.NewSendClient(cfg.SendGrid.APIKey)
 	sgNotifier := sendgrid_email_api.NewSendgridNotifier(sgClient, cfg)
+	sgEmNotifier := notifier.NewSendGridEmailNotifier(&sgNotifier)
 
 	geoSvc := openweather.NewOpenWeatherGeocodingService(cfg)
 	owAPI := openweather.NewOpenWeatherAPI(cfg)
 
 	weatherProvider := weather_provider.NewOpenWeatherProvider(&geoSvc, owAPI)
 	subscriptionService := subscription.NewSubscriptionService()
-	notificationService := notification.NewNotificationService(&sgNotifier)
+	notificationService := notification.NewNotificationService(&sgEmNotifier)
 
 	newScheduler := scheduler.NewScheduler(cfg, &notificationService, &weatherProvider)
 	go func() {
@@ -64,7 +68,12 @@ func main() {
 		}
 	}()
 
-	router := routes.NewRouter(subscriptionService, &notificationService)
+	httpRouter := routes.NewHTTPRouter()
+
+	weatherHandler := weather.NewWeatherHandler(&weatherProvider, 5*time.Second)
+	subscribeHandler := subscribe.NewSubscribeHandler(subscriptionService, &notificationService)
+
+	router := routes.NewRouter(&weatherHandler, &subscribeHandler, httpRouter)
 	router.RegisterRoutes()
 
 	srv := &http.Server{

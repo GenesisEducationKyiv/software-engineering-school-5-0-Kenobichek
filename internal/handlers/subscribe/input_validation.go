@@ -1,22 +1,12 @@
 package subscribe
 
 import (
+	"Weather-Forecast-API/internal/constants"
 	"errors"
 	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strings"
 )
-
-type SubscribeInput struct {
-	ChannelType  string
-	ChannelValue string
-	City         string
-	Frequency    string
-}
-
-type TokenInput struct {
-	Token string
-}
 
 func ParseAndValidateSubscribeInput(r *http.Request) (SubscribeInput, error) {
 	channelValue := strings.TrimSpace(r.FormValue("email"))
@@ -27,7 +17,7 @@ func ParseAndValidateSubscribeInput(r *http.Request) (SubscribeInput, error) {
 	}
 	channelType := strings.TrimSpace(r.FormValue("channelType"))
 	if channelType == "" {
-		channelType = "email"
+		channelType = constants.ChannelEmail
 	}
 	if !IsValidChannel(channelType) {
 		return SubscribeInput{}, errors.New("unsupported channelType")

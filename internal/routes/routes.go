@@ -3,45 +3,56 @@ package routes
 import (
 	"Weather-Forecast-API/internal/handlers/subscribe"
 	"Weather-Forecast-API/internal/handlers/weather"
-	"Weather-Forecast-API/internal/services/notification"
-	"Weather-Forecast-API/internal/services/subscription"
-	"Weather-Forecast-API/internal/weather_provider"
 	"github.com/go-chi/chi/v5"
 	"net/http"
-	"time"
 )
 
-type Router struct {
-	router       chi.Router
-	subService   subscription.SubscriptionService
-	notifService notification.NotificationService
-	weatherProvider	weather_provider.WeatherProvider
+type HTTPRouter interface {
+	http.Handler
+
+	Route(pattern string, fn func(r chi.Router)) chi.Router
+	Get(pattern string, h http.HandlerFunc)
+	Post(pattern string, h http.HandlerFunc)
+	Handle(pattern string, h http.Handler)
 }
 
-func NewRouter(subService subscription.SubscriptionService, notifService notification.NotificationService) *Router {
-	return &Router{
-		router:       chi.NewRouter(),
-		subService:   subService,
-		notifService: notifService,
+func NewHTTPRouter() HTTPRouter {
+	return chi.NewRouter()
+}
+
+type RouterManager interface {
+	GetRouter() HTTPRouter
+	RegisterRoutes()
+}
+
+type ServerRouter struct {
+	router    HTTPRouter
+	subscribe subscribe.SubscriptionManager
+	weather   weather.WeatherManager
+}
+
+func NewRouter(weather weather.WeatherManager,
+	subscribe subscribe.SubscriptionManager,
+	router HTTPRouter) ServerRouter {
+	return ServerRouter{
+		router:    router,
+		subscribe: subscribe,
+		weather:   weather,
 	}
 }
 
-func (r *Router) GetRouter() chi.Router {
+func (r *ServerRouter) GetRouter() HTTPRouter {
 	return r.router
 }
 
-func (r *Router) RegisterRoutes() {
-	subscribeHandler := subscribe.NewSubscribeHandler(
-		r.subService,
-		r.notifService,
-	)
-	weatherHandler := weather.NewWeatherHandler(r.weatherProvider, 5 * time.Second )
+func (r *ServerRouter) RegisterRoutes() {
+	outer := r
 
-	r.router.Route("/api", func(r chi.Router) {
-		r.Get("/weather", weatherHandler.GetWeather)
-		r.Post("/subscribe", subscribeHandler.Subscribe)
-		r.Get("/confirm/{token}", subscribeHandler.Confirm)
-		r.Get("/unsubscribe/{token}", subscribeHandler.Unsubscribe)
+	r.router.Route("/api", func(rt chi.Router) {
+		rt.Get("/weather", outer.weather.GetWeather)
+		rt.Post("/subscribe", outer.subscribe.Subscribe)
+		rt.Get("/confirm/{token}", outer.subscribe.Confirm)
+		rt.Get("/unsubscribe/{token}", outer.subscribe.Unsubscribe)
 	})
 
 	r.router.Get("/", func(w http.ResponseWriter, r *http.Request) {
