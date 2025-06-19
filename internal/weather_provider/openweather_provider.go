@@ -9,12 +9,12 @@ import (
 
 type OpenWeatherProvider struct {
 	geocoding      openweather.GeocodingProvider
-	openWeatherAPI openweather.OpenWeatherAPI
+	openWeatherAPI openweather.WeatherProvider
 }
 
 func NewOpenWeatherProvider(
 	geocoding openweather.GeocodingProvider,
-	openWeatherAPI openweather.OpenWeatherAPI) OpenWeatherProvider {
+	openWeatherAPI openweather.WeatherProvider) OpenWeatherProvider {
 	return OpenWeatherProvider{
 		geocoding:      geocoding,
 		openWeatherAPI: openWeatherAPI,

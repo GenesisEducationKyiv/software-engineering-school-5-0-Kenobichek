@@ -9,6 +9,10 @@ import (
 	"net/http"
 )
 
+type WeatherProvider interface {
+	GetWeather(ctx context.Context, coords Coordinates) (WeatherData, error)
+}
+
 type OpenWeatherAPI struct {
 	cfg        *config.Config
 	httpClient *http.Client
