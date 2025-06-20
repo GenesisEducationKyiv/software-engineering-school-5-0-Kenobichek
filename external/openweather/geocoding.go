@@ -14,12 +14,12 @@ type GeocodingProvider interface {
 }
 
 type OpenWeatherGeocodingService struct {
-	cfg        *config.Config
+	cfg        config.Config
 	httpClient *http.Client
 }
 
 func NewOpenWeatherGeocodingService(
-	cfg *config.Config,
+	cfg config.Config,
 	httpClient *http.Client) *OpenWeatherGeocodingService {
 	return &OpenWeatherGeocodingService{
 		cfg:        cfg,

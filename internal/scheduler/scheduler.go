@@ -16,13 +16,13 @@ import (
 )
 
 type Scheduler struct {
-	cfg             *config.Config
+	cfg             config.Config
 	notifService    notification.NotificationService
 	weatherProvider weatherprovider.WeatherProvider
 }
 
 func NewScheduler(
-	cfg *config.Config,
+	cfg config.Config,
 	notifService notification.NotificationService,
 	weatherProvider weatherprovider.WeatherProvider) *Scheduler {
 	return &Scheduler{

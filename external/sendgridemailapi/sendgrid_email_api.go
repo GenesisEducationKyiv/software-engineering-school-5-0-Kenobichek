@@ -12,7 +12,7 @@ type Notifier interface {
 }
 
 type SendgridNotifier struct {
-	cfg    *config.Config
+	cfg    config.Config
 	client SendGridClient
 }
 
@@ -22,7 +22,7 @@ type SendGridClient interface {
 
 func NewSendgridNotifier(
 	client SendGridClient,
-	cfg *config.Config) *SendgridNotifier {
+	cfg config.Config) *SendgridNotifier {
 	return &SendgridNotifier{
 		client: client,
 		cfg:    cfg,

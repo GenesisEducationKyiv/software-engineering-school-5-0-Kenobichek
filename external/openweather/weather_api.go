@@ -14,12 +14,12 @@ type WeatherProvider interface {
 }
 
 type OpenWeatherAPI struct {
-	cfg        *config.Config
+	cfg        config.Config
 	httpClient *http.Client
 }
 
 func NewOpenWeatherAPI(
-	cfg *config.Config,
+	cfg config.Config,
 	httpClient *http.Client) *OpenWeatherAPI {
 	return &OpenWeatherAPI{
 		cfg:        cfg,

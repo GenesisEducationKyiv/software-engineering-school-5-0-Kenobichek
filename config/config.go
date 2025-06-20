@@ -5,24 +5,24 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-func Load() (*Config, error) {
+func Load() (Config, error) {
 	var cfg Config
 
 	if err := envconfig.Process("", &cfg); err != nil {
-		return nil, fmt.Errorf("config: %w", err)
+		return cfg, fmt.Errorf("config: %w", err)
 	}
 
 	if err := validate(&cfg); err != nil {
-		return nil, err
+		return cfg, err
 	}
 
-	return &cfg, nil
+	return cfg, nil
 }
 
-func MustLoad() (*Config, error) {
+func MustLoad() (Config, error) {
 	cfg, err := Load()
 	if err != nil {
-		return nil, fmt.Errorf("failed to load config: %w", err)
+		return cfg, fmt.Errorf("failed to load config: %w", err)
 	}
 	return cfg, nil
 }
