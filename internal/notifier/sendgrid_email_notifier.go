@@ -1,7 +1,7 @@
 package notifier
 
 import (
-	"Weather-Forecast-API/external/sendgrid_email_api"
+	"Weather-Forecast-API/external/sendgridemailapi"
 	"fmt"
 )
 
@@ -10,18 +10,18 @@ type EmailNotifier interface {
 }
 
 type SendGridEmailNotifier struct {
-	notifier sendgrid_email_api.Notifier
+	notifier sendgridemailapi.Notifier
 }
 
-func NewSendGridEmailNotifier(notifier sendgrid_email_api.Notifier) SendGridEmailNotifier {
-	return SendGridEmailNotifier{
+func NewSendGridEmailNotifier(notifier sendgridemailapi.Notifier) *SendGridEmailNotifier {
+	return &SendGridEmailNotifier{
 		notifier: notifier,
 	}
 }
 
 func (n *SendGridEmailNotifier) Send(to, message, subject string) error {
-	target := sendgrid_email_api.NotificationTarget{
-		Type:    sendgrid_email_api.ChannelEmail,
+	target := sendgridemailapi.NotificationTarget{
+		Type:    sendgridemailapi.ChannelEmail,
 		Address: to,
 	}
 	if err := n.notifier.Send(target, message, subject); err != nil {

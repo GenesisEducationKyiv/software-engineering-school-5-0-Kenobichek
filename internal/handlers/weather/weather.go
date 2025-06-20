@@ -2,7 +2,7 @@ package weather
 
 import (
 	"Weather-Forecast-API/internal/response"
-	"Weather-Forecast-API/internal/weather_provider"
+	"Weather-Forecast-API/internal/weatherprovider"
 	"context"
 	"net/http"
 	"time"
@@ -13,12 +13,14 @@ type WeatherManager interface {
 }
 
 type WeatherHandler struct {
-	weatherProvider weather_provider.WeatherProvider
+	weatherProvider weatherprovider.WeatherProvider
 	requestTimeout  time.Duration
 }
 
-func NewWeatherHandler(provider weather_provider.WeatherProvider, timeout time.Duration) WeatherHandler {
-	return WeatherHandler{
+func NewWeatherHandler(
+	provider weatherprovider.WeatherProvider,
+	timeout time.Duration) *WeatherHandler {
+	return &WeatherHandler{
 		weatherProvider: provider,
 		requestTimeout:  timeout,
 	}

@@ -22,9 +22,10 @@ type SubscriptionHandler struct {
 	notificationService notification.NotificationService
 }
 
-func NewSubscribeHandler(subscriptionService subscription.SubscriptionService,
-	notificationService notification.NotificationService) SubscriptionHandler {
-	return SubscriptionHandler{
+func NewSubscribeHandler(
+	subscriptionService subscription.SubscriptionService,
+	notificationService notification.NotificationService) *SubscriptionHandler {
+	return &SubscriptionHandler{
 		subscriptionService: subscriptionService,
 		notificationService: notificationService,
 	}

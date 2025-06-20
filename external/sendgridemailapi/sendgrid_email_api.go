@@ -1,4 +1,4 @@
-package sendgrid_email_api
+package sendgridemailapi
 
 import (
 	"Weather-Forecast-API/config"
@@ -20,8 +20,10 @@ type SendGridClient interface {
 	Send(email *mail.SGMailV3) (*rest.Response, error)
 }
 
-func NewSendgridNotifier(client SendGridClient, cfg *config.Config) SendgridNotifier {
-	return SendgridNotifier{
+func NewSendgridNotifier(
+	client SendGridClient,
+	cfg *config.Config) *SendgridNotifier {
+	return &SendgridNotifier{
 		client: client,
 		cfg:    cfg,
 	}

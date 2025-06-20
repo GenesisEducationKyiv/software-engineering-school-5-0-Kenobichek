@@ -18,9 +18,10 @@ type OpenWeatherGeocodingService struct {
 	httpClient *http.Client
 }
 
-func NewOpenWeatherGeocodingService(cfg *config.Config,
-	httpClient *http.Client) OpenWeatherGeocodingService {
-	return OpenWeatherGeocodingService{
+func NewOpenWeatherGeocodingService(
+	cfg *config.Config,
+	httpClient *http.Client) *OpenWeatherGeocodingService {
+	return &OpenWeatherGeocodingService{
 		cfg:        cfg,
 		httpClient: httpClient,
 	}
@@ -30,7 +31,7 @@ func (g *OpenWeatherGeocodingService) GetCoordinates(ctx context.Context, city s
 	geoURL := fmt.Sprintf("%s?q=%s&limit=1&appid=%s",
 		g.cfg.OpenWeather.GeocodingAPIURL, url.QueryEscape(city), g.cfg.OpenWeather.APIKey)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, geoURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, geoURL, http.NoBody)
 	if err != nil {
 		return Coordinates{}, fmt.Errorf("failed to create request: %w", err)
 	}

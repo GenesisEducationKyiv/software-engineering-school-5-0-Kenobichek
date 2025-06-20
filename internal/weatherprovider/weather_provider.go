@@ -1,4 +1,4 @@
-package weather_provider
+package weatherprovider
 
 import (
 	"Weather-Forecast-API/external/openweather"

@@ -1,4 +1,4 @@
-package sendgrid_email_api
+package sendgridemailapi
 
 type ChannelType string
 

@@ -31,10 +31,11 @@ type ServerRouter struct {
 	weather   weather.WeatherManager
 }
 
-func NewRouter(weather weather.WeatherManager,
+func NewRouter(
+	weather weather.WeatherManager,
 	subscribe subscribe.SubscriptionManager,
-	router HTTPRouter) ServerRouter {
-	return ServerRouter{
+	router HTTPRouter) *ServerRouter {
+	return &ServerRouter{
 		router:    router,
 		subscribe: subscribe,
 		weather:   weather,

@@ -1,4 +1,4 @@
-package weather_provider
+package weatherprovider
 
 import (
 	"Weather-Forecast-API/external/openweather"
@@ -14,8 +14,8 @@ type OpenWeatherProvider struct {
 
 func NewOpenWeatherProvider(
 	geocoding openweather.GeocodingProvider,
-	openWeatherAPI openweather.WeatherProvider) OpenWeatherProvider {
-	return OpenWeatherProvider{
+	openWeatherAPI openweather.WeatherProvider) *OpenWeatherProvider {
+	return &OpenWeatherProvider{
 		geocoding:      geocoding,
 		openWeatherAPI: openWeatherAPI,
 	}

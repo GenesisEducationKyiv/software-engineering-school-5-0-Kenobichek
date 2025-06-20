@@ -2,7 +2,7 @@ package main
 
 import (
 	"Weather-Forecast-API/external/openweather"
-	"Weather-Forecast-API/external/sendgrid_email_api"
+	"Weather-Forecast-API/external/sendgridemailapi"
 	"Weather-Forecast-API/internal/handlers/subscribe"
 	"Weather-Forecast-API/internal/handlers/weather"
 	"Weather-Forecast-API/internal/httpclient"
@@ -11,7 +11,7 @@ import (
 	"Weather-Forecast-API/internal/scheduler"
 	"Weather-Forecast-API/internal/services/notification"
 	"Weather-Forecast-API/internal/services/subscription"
-	"Weather-Forecast-API/internal/weather_provider"
+	"Weather-Forecast-API/internal/weatherprovider"
 	"errors"
 	"github.com/sendgrid/sendgrid-go"
 	"log"
@@ -51,19 +51,19 @@ func main() {
 	}
 
 	sgClient := sendgrid.NewSendClient(cfg.SendGrid.APIKey)
-	sgNotifier := sendgrid_email_api.NewSendgridNotifier(sgClient, cfg)
-	sgEmNotifier := notifier.NewSendGridEmailNotifier(&sgNotifier)
+	sgNotifier := sendgridemailapi.NewSendgridNotifier(sgClient, cfg)
+	sgEmNotifier := notifier.NewSendGridEmailNotifier(sgNotifier)
 
 	httpClient := httpclient.New()
 
 	geoSvc := openweather.NewOpenWeatherGeocodingService(cfg, httpClient)
 	owAPI := openweather.NewOpenWeatherAPI(cfg, httpClient)
 
-	weatherProvider := weather_provider.NewOpenWeatherProvider(&geoSvc, &owAPI)
+	weatherProvider := weatherprovider.NewOpenWeatherProvider(geoSvc, owAPI)
 	subscriptionService := subscription.NewSubscriptionService()
-	notificationService := notification.NewNotificationService(&sgEmNotifier)
+	notificationService := notification.NewNotificationService(sgEmNotifier)
 
-	newScheduler := scheduler.NewScheduler(cfg, &notificationService, &weatherProvider)
+	newScheduler := scheduler.NewScheduler(cfg, notificationService, weatherProvider)
 	go func() {
 		_, err := newScheduler.Start()
 		if err != nil {
@@ -73,10 +73,10 @@ func main() {
 
 	httpRouter := routes.NewHTTPRouter()
 
-	weatherHandler := weather.NewWeatherHandler(&weatherProvider, 5*time.Second)
-	subscribeHandler := subscribe.NewSubscribeHandler(subscriptionService, &notificationService)
+	weatherHandler := weather.NewWeatherHandler(weatherProvider, 5*time.Second)
+	subscribeHandler := subscribe.NewSubscribeHandler(subscriptionService, notificationService)
 
-	router := routes.NewRouter(&weatherHandler, &subscribeHandler, httpRouter)
+	router := routes.NewRouter(weatherHandler, subscribeHandler, httpRouter)
 	router.RegisterRoutes()
 
 	srv := &http.Server{

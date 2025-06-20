@@ -18,8 +18,10 @@ type OpenWeatherAPI struct {
 	httpClient *http.Client
 }
 
-func NewOpenWeatherAPI(cfg *config.Config, httpClient *http.Client) OpenWeatherAPI {
-	return OpenWeatherAPI{
+func NewOpenWeatherAPI(
+	cfg *config.Config,
+	httpClient *http.Client) *OpenWeatherAPI {
+	return &OpenWeatherAPI{
 		cfg:        cfg,
 		httpClient: httpClient,
 	}
@@ -29,7 +31,7 @@ func (w *OpenWeatherAPI) GetWeather(ctx context.Context, coords Coordinates) (We
 	weatherURL := fmt.Sprintf("%s?lat=%f&lon=%f&appid=%s&units=metric",
 		w.cfg.OpenWeather.WeatherAPIURL, coords.Lat, coords.Lon, w.cfg.OpenWeather.APIKey)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, weatherURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, weatherURL, http.NoBody)
 	if err != nil {
 		return WeatherData{}, fmt.Errorf("failed to create request: %w", err)
 	}
