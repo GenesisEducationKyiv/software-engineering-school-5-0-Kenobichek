@@ -89,7 +89,7 @@ func (a *App) buildHTTPRouter(
 		weatherHandlerTimeout,
 	)
 
-	subscribeHandler := subscribe.NewSubscribeHandler(
+	subscribeHandler := subscribe.NewHandler(
 		subSvc,
 		notifSvc,
 	)

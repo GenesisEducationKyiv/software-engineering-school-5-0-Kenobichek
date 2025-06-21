@@ -12,27 +12,22 @@ import (
 	"net/http"
 )
 
-type SubscriptionManager interface {
-	Subscribe(writer http.ResponseWriter, request *http.Request)
-	Unsubscribe(writer http.ResponseWriter, request *http.Request)
-	Confirm(writer http.ResponseWriter, request *http.Request)
-}
-
-type SubscriptionHandler struct {
+type Handler struct {
 	subscriptionService subscription.SubscriptionService
 	notificationService notification.NotificationService
 }
 
-func NewSubscribeHandler(
+func NewHandler(
 	subscriptionService subscription.SubscriptionService,
-	notificationService notification.NotificationService) *SubscriptionHandler {
-	return &SubscriptionHandler{
+	notificationService notification.NotificationService,
+) *Handler {
+	return &Handler{
 		subscriptionService: subscriptionService,
 		notificationService: notificationService,
 	}
 }
 
-func (h *SubscriptionHandler) Subscribe(writer http.ResponseWriter, request *http.Request) {
+func (h *Handler) Subscribe(writer http.ResponseWriter, request *http.Request) {
 	input, err := parseSubscribeInput(request)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusBadRequest, err.Error())
@@ -78,7 +73,7 @@ func (h *SubscriptionHandler) Subscribe(writer http.ResponseWriter, request *htt
 	response.RespondJSON(writer, http.StatusOK, "Subscription successful. Confirmation sent.")
 }
 
-func (h *SubscriptionHandler) Unsubscribe(writer http.ResponseWriter, request *http.Request) {
+func (h *Handler) Unsubscribe(writer http.ResponseWriter, request *http.Request) {
 	input, err := parseTokenFromRequest(request)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusBadRequest, err.Error())
@@ -117,7 +112,7 @@ func (h *SubscriptionHandler) Unsubscribe(writer http.ResponseWriter, request *h
 	response.RespondJSON(writer, http.StatusOK, "You have been unsubscribed successfully.")
 }
 
-func (h *SubscriptionHandler) Confirm(writer http.ResponseWriter, request *http.Request) {
+func (h *Handler) Confirm(writer http.ResponseWriter, request *http.Request) {
 	input, err := parseTokenFromRequest(request)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusBadRequest, err.Error())
