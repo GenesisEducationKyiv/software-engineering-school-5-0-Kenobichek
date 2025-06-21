@@ -18,11 +18,6 @@ func NewHTTPRouter() chi.Router {
 	return chi.NewRouter()
 }
 
-//type RouterManager interface {
-//	GetRouter() httpRouteManager
-//	RegisterRoutes()
-//}
-
 type weatherManager interface {
 	GetWeather(writer http.ResponseWriter, request *http.Request)
 }
