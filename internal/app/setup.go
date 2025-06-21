@@ -19,18 +19,27 @@ import (
 	"time"
 )
 
-func (a *App) ensureConfig() (Config, error) {
+const (
+	readTimeout           = 5 * time.Second
+	writeTimeout          = 10 * time.Second
+	idleTimeout           = 120 * time.Second
+	weatherHandlerTimeout = 5 * time.Second
+)
+
+func (a *App) loadConfigIfEmpty() (Config, error) {
 	if (a.config == Config{}) {
 		return config.MustLoad()
 	}
+
 	return a.config, nil
 }
 
-func (a *App) initDatabase(dsn string) (*sql.DB, error) {
-	dbConn, err := db.Init(dsn)
+func (a *App) connectDatabase() (*sql.DB, error) {
+	dbConn, err := db.Init(a.config.GetDatabaseDSN())
 	if err != nil {
 		return nil, err
 	}
+
 	if err := db.RunMigrations(dbConn); err != nil {
 		return nil, err
 	}
@@ -38,14 +47,33 @@ func (a *App) initDatabase(dsn string) (*sql.DB, error) {
 }
 
 func (a *App) buildEmailNotifier() notifier.EmailNotifier {
-	sgClient := sendgrid.NewSendClient(a.config.SendGrid.APIKey)
-	sgNotifier := sendgridemailapi.NewSendgridNotifier(sgClient, a.config)
+	sgCfg := a.config.SendGrid
+
+	sgClient := sendgrid.NewSendClient(sgCfg.APIKey)
+
+	sgNotifier := sendgridemailapi.NewSendgridNotifier(
+		sgClient,
+		sgCfg.SenderName,
+		sgCfg.SenderEmail,
+	)
+
 	return notifier.NewSendGridEmailNotifier(sgNotifier)
 }
 
 func (a *App) buildWeatherProvider(client *http.Client) weatherprovider.WeatherProvider {
-	geoSvc := openweather.NewOpenWeatherGeocodingService(a.config, client)
-	owAPI := openweather.NewOpenWeatherAPI(a.config, client)
+	owCfg := a.config.OpenWeather
+
+	geoSvc := openweather.NewOpenWeatherGeocodingService(
+		client,
+		owCfg.GeocodingAPIURL,
+		owCfg.APIKey,
+	)
+
+	owAPI := openweather.NewOpenWeatherAPI(
+		client,
+		owCfg.WeatherAPIURL,
+		owCfg.APIKey,
+	)
 	return weatherprovider.NewOpenWeatherProvider(geoSvc, owAPI)
 }
 
@@ -55,24 +83,39 @@ func (a *App) buildHTTPRouter(
 	notifSvc notification.NotificationService,
 ) http.Handler {
 	rtr := routes.NewHTTPRouter()
-	weatherHandler := weather.NewWeatherHandler(weatherProv, 5*time.Second)
-	subscribeHandler := subscribe.NewSubscribeHandler(subSvc, notifSvc)
-	appRouter := routes.NewRouter(weatherHandler, subscribeHandler, rtr)
+
+	weatherHandler := weather.NewWeatherHandler(
+		weatherProv,
+		weatherHandlerTimeout,
+	)
+
+	subscribeHandler := subscribe.NewSubscribeHandler(
+		subSvc,
+		notifSvc,
+	)
+
+	appRouter := routes.NewRouter(
+		weatherHandler,
+		subscribeHandler,
+		rtr,
+	)
+
 	appRouter.RegisterRoutes()
+
 	return appRouter.GetRouter()
 }
 
-func (a *App) newHTTPServer(addr string, handler http.Handler) *http.Server {
+func (a *App) newHTTPServer(handler http.Handler) *http.Server {
 	return &http.Server{
-		Addr:         addr,
+		Addr:         a.config.GetServerAddress(),
 		Handler:      handler,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		ReadTimeout:  readTimeout,
+		WriteTimeout: writeTimeout,
+		IdleTimeout:  idleTimeout,
 	}
 }
 
-func (a *App) startScheduler(s *scheduler.Scheduler, errCh chan<- error) {
+func (a *App) runSchedulerAsync(s *scheduler.Scheduler, errCh chan<- error) {
 	go func() {
 		if _, err := s.Start(); err != nil {
 			errCh <- err

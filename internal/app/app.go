@@ -21,11 +21,11 @@ func New(cfg Config) *App { return &App{config: cfg} }
 
 func (a *App) Run() error {
 	var err error
-	a.config, err = a.ensureConfig()
+	a.config, err = a.loadConfigIfEmpty()
 	if err != nil {
 		return err
 	}
-	dbConn, err := a.initDatabase(a.config.GetDatabaseDSN())
+	dbConn, err := a.connectDatabase()
 	if err != nil {
 		return err
 	}
@@ -42,14 +42,14 @@ func (a *App) Run() error {
 	subSvc := subscription.NewSubscriptionService()
 	notifSvc := notification.NewNotificationService(emailNotifier)
 
-	taskScheduler := scheduler.NewScheduler(a.config, notifSvc, weatherProv)
+	taskScheduler := scheduler.NewScheduler(notifSvc, weatherProv)
 	errCh := make(chan error, 1)
 
-	a.startScheduler(taskScheduler, errCh)
+	a.runSchedulerAsync(taskScheduler, errCh)
 
 	router := a.buildHTTPRouter(weatherProv, subSvc, notifSvc)
 
-	server := a.newHTTPServer(a.config.GetServerAddress(), router)
+	server := a.newHTTPServer(router)
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {

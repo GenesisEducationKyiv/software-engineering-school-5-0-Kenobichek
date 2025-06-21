@@ -1,7 +1,6 @@
 package scheduler
 
 import (
-	"Weather-Forecast-API/config"
 	"Weather-Forecast-API/internal/repository"
 	"Weather-Forecast-API/internal/services/notification"
 	"Weather-Forecast-API/internal/weatherprovider"
@@ -16,17 +15,14 @@ import (
 )
 
 type Scheduler struct {
-	cfg             config.Config
 	notifService    notification.NotificationService
 	weatherProvider weatherprovider.WeatherProvider
 }
 
 func NewScheduler(
-	cfg config.Config,
 	notifService notification.NotificationService,
 	weatherProvider weatherprovider.WeatherProvider) *Scheduler {
 	return &Scheduler{
-		cfg:             cfg,
 		notifService:    notifService,
 		weatherProvider: weatherProvider,
 	}

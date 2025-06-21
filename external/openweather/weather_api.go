@@ -1,7 +1,6 @@
 package openweather
 
 import (
-	"Weather-Forecast-API/config"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -14,22 +13,25 @@ type WeatherProvider interface {
 }
 
 type OpenWeatherAPI struct {
-	cfg        config.Config
 	httpClient *http.Client
+	apiurl     string
+	apikey     string
 }
 
 func NewOpenWeatherAPI(
-	cfg config.Config,
-	httpClient *http.Client) *OpenWeatherAPI {
+	httpClient *http.Client,
+	apiurl string,
+	apikey string) *OpenWeatherAPI {
 	return &OpenWeatherAPI{
-		cfg:        cfg,
 		httpClient: httpClient,
+		apiurl:     apiurl,
+		apikey:     apikey,
 	}
 }
 
 func (w *OpenWeatherAPI) GetWeather(ctx context.Context, coords Coordinates) (WeatherData, error) {
 	weatherURL := fmt.Sprintf("%s?lat=%f&lon=%f&appid=%s&units=metric",
-		w.cfg.OpenWeather.WeatherAPIURL, coords.Lat, coords.Lon, w.cfg.OpenWeather.APIKey)
+		w.apiurl, coords.Lat, coords.Lon, w.apikey)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, weatherURL, http.NoBody)
 	if err != nil {

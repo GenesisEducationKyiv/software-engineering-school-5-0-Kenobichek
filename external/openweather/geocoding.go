@@ -1,7 +1,6 @@
 package openweather
 
 import (
-	"Weather-Forecast-API/config"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -14,22 +13,25 @@ type GeocodingProvider interface {
 }
 
 type OpenWeatherGeocodingService struct {
-	cfg        config.Config
 	httpClient *http.Client
+	apiurl     string
+	apikey     string
 }
 
 func NewOpenWeatherGeocodingService(
-	cfg config.Config,
-	httpClient *http.Client) *OpenWeatherGeocodingService {
+	httpClient *http.Client,
+	apiurl string,
+	apikey string) *OpenWeatherGeocodingService {
 	return &OpenWeatherGeocodingService{
-		cfg:        cfg,
 		httpClient: httpClient,
+		apiurl:     apiurl,
+		apikey:     apikey,
 	}
 }
 
 func (g *OpenWeatherGeocodingService) GetCoordinates(ctx context.Context, city string) (Coordinates, error) {
 	geoURL := fmt.Sprintf("%s?q=%s&limit=1&appid=%s",
-		g.cfg.OpenWeather.GeocodingAPIURL, url.QueryEscape(city), g.cfg.OpenWeather.APIKey)
+		g.apiurl, url.QueryEscape(city), g.apikey)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, geoURL, http.NoBody)
 	if err != nil {

@@ -1,7 +1,6 @@
 package sendgridemailapi
 
 import (
-	"Weather-Forecast-API/config"
 	"fmt"
 	"github.com/sendgrid/rest"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
@@ -12,8 +11,9 @@ type Notifier interface {
 }
 
 type SendgridNotifier struct {
-	cfg    config.Config
-	client SendGridClient
+	client      SendGridClient
+	senderName  string
+	senderEmail string
 }
 
 type SendGridClient interface {
@@ -22,10 +22,12 @@ type SendGridClient interface {
 
 func NewSendgridNotifier(
 	client SendGridClient,
-	cfg config.Config) *SendgridNotifier {
+	senderName string,
+	senderEmail string) *SendgridNotifier {
 	return &SendgridNotifier{
-		client: client,
-		cfg:    cfg,
+		client:      client,
+		senderName:  senderName,
+		senderEmail: senderEmail,
 	}
 }
 
@@ -34,7 +36,7 @@ func (s *SendgridNotifier) Send(target NotificationTarget, message, subject stri
 		return fmt.Errorf("invalid notification target type %s, expected email", target.Type)
 	}
 
-	from := mail.NewEmail(s.cfg.SendGrid.SenderName, s.cfg.SendGrid.SenderEmail)
+	from := mail.NewEmail(s.senderName, s.senderEmail)
 	to := mail.NewEmail("", target.Address)
 	m := mail.NewSingleEmail(from, subject, to, message, message)
 
