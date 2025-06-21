@@ -7,12 +7,12 @@ import (
 	"Weather-Forecast-API/internal/db"
 	"Weather-Forecast-API/internal/handlers/subscribe"
 	"Weather-Forecast-API/internal/handlers/weather"
-	"Weather-Forecast-API/internal/notifier"
+	"Weather-Forecast-API/internal/notifier/sengridnotifier"
+	"Weather-Forecast-API/internal/repository"
 	"Weather-Forecast-API/internal/routes"
 	"Weather-Forecast-API/internal/scheduler"
-	"Weather-Forecast-API/internal/services/notification"
-	"Weather-Forecast-API/internal/services/subscription"
-	"Weather-Forecast-API/internal/weatherprovider"
+	"Weather-Forecast-API/internal/weatherprovider/openweatherprovider"
+	"context"
 	"database/sql"
 	"github.com/sendgrid/sendgrid-go"
 	"net/http"
@@ -46,7 +46,7 @@ func (a *App) connectDatabase() (*sql.DB, error) {
 	return dbConn, nil
 }
 
-func (a *App) buildEmailNotifier() notifier.EmailNotifier {
+func (a *App) buildSendGridEmailNotifier() *sengridnotifier.SendGridEmailNotifier {
 	sgCfg := a.config.SendGrid
 
 	sgClient := sendgrid.NewSendClient(sgCfg.APIKey)
@@ -57,13 +57,13 @@ func (a *App) buildEmailNotifier() notifier.EmailNotifier {
 		sgCfg.SenderEmail,
 	)
 
-	return notifier.NewSendGridEmailNotifier(sgNotifier)
+	return sengridnotifier.NewSendGridEmailNotifier(sgNotifier)
 }
 
-func (a *App) buildWeatherProvider(client *http.Client) weatherprovider.WeatherProvider {
+func (a *App) buildOpenWeatherProvider(client *http.Client) *openweatherprovider.OpenWeatherProvider {
 	owCfg := a.config.OpenWeather
 
-	geoSvc := openweather.NewOpenWeatherGeocodingService(
+	geoSvc := openweather.NewGeocodingService(
 		client,
 		owCfg.GeocodingAPIURL,
 		owCfg.APIKey,
@@ -74,13 +74,27 @@ func (a *App) buildWeatherProvider(client *http.Client) weatherprovider.WeatherP
 		owCfg.WeatherAPIURL,
 		owCfg.APIKey,
 	)
-	return weatherprovider.NewOpenWeatherProvider(geoSvc, owAPI)
+	return openweatherprovider.NewOpenWeatherProvider(geoSvc, owAPI)
 }
 
-func (a *App) buildHTTPRouter(
-	weatherProv weatherprovider.WeatherProvider,
-	subSvc subscription.SubscriptionService,
-	notifSvc notification.NotificationService,
+type subscriptionManager interface {
+	Subscribe(sub *repository.Subscription) error
+	Unsubscribe(sub *repository.Subscription) error
+	Confirm(sub *repository.Subscription) error
+}
+
+type notificationManager interface {
+	SendMessage(channelType string, channelValue string, message string, subject string) error
+}
+
+type weatherProviderManager interface {
+	GetWeatherByCity(ctx context.Context, city string) (weather.Metrics, error)
+}
+
+func (a *App) buildRouter(
+	weatherProv weatherProviderManager,
+	subSvc subscriptionManager,
+	notifSvc notificationManager,
 ) http.Handler {
 	rtr := routes.NewHTTPRouter()
 
@@ -94,7 +108,7 @@ func (a *App) buildHTTPRouter(
 		notifSvc,
 	)
 
-	appRouter := routes.NewRouter(
+	appRouter := routes.NewService(
 		weatherHandler,
 		subscribeHandler,
 		rtr,

@@ -2,25 +2,24 @@ package notification
 
 import (
 	"Weather-Forecast-API/external/sendgridemailapi"
-	"Weather-Forecast-API/internal/notifier"
 	"fmt"
 )
 
-type NotificationService interface {
-	SendMessage(channelType string, channelValue string, message string, subject string) error
+type emailNotifierManager interface {
+	Send(to, message, subject string) error
 }
 
-func NewNotificationService(notifier notifier.EmailNotifier) *NotificationSender {
-	return &NotificationSender{
+func NewService(notifier emailNotifierManager) *Service {
+	return &Service{
 		notifier: notifier,
 	}
 }
 
-type NotificationSender struct {
-	notifier notifier.EmailNotifier
+type Service struct {
+	notifier emailNotifierManager
 }
 
-func (s *NotificationSender) SendMessage(
+func (s *Service) SendMessage(
 	channelType string,
 	channelValue string,
 	message string,

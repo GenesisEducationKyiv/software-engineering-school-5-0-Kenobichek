@@ -3,8 +3,6 @@ package subscribe
 import (
 	"Weather-Forecast-API/internal/repository"
 	"Weather-Forecast-API/internal/response"
-	"Weather-Forecast-API/internal/services/notification"
-	"Weather-Forecast-API/internal/services/subscription"
 	"Weather-Forecast-API/internal/templates"
 	"strings"
 
@@ -12,14 +10,24 @@ import (
 	"net/http"
 )
 
+type subscriptionManager interface {
+	Subscribe(sub *repository.Subscription) error
+	Unsubscribe(sub *repository.Subscription) error
+	Confirm(sub *repository.Subscription) error
+}
+
+type notificationManager interface {
+	SendMessage(channelType string, channelValue string, message string, subject string) error
+}
+
 type Handler struct {
-	subscriptionService subscription.SubscriptionService
-	notificationService notification.NotificationService
+	subscriptionService subscriptionManager
+	notificationService notificationManager
 }
 
 func NewHandler(
-	subscriptionService subscription.SubscriptionService,
-	notificationService notification.NotificationService,
+	subscriptionService subscriptionManager,
+	notificationService notificationManager,
 ) *Handler {
 	return &Handler{
 		subscriptionService: subscriptionService,

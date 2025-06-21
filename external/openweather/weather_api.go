@@ -1,6 +1,7 @@
 package openweather
 
 import (
+	"Weather-Forecast-API/internal/handlers/weather"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -8,11 +9,7 @@ import (
 	"net/http"
 )
 
-type WeatherProvider interface {
-	GetWeather(ctx context.Context, coords Coordinates) (WeatherData, error)
-}
-
-type OpenWeatherAPI struct {
+type WeatherAPI struct {
 	httpClient *http.Client
 	apiurl     string
 	apikey     string
@@ -21,26 +18,27 @@ type OpenWeatherAPI struct {
 func NewOpenWeatherAPI(
 	httpClient *http.Client,
 	apiurl string,
-	apikey string) *OpenWeatherAPI {
-	return &OpenWeatherAPI{
+	apikey string,
+) *WeatherAPI {
+	return &WeatherAPI{
 		httpClient: httpClient,
 		apiurl:     apiurl,
 		apikey:     apikey,
 	}
 }
 
-func (w *OpenWeatherAPI) GetWeather(ctx context.Context, coords Coordinates) (WeatherData, error) {
+func (w *WeatherAPI) GetWeather(ctx context.Context, coords weather.Coordinates) (weather.Metrics, error) {
 	weatherURL := fmt.Sprintf("%s?lat=%f&lon=%f&appid=%s&units=metric",
 		w.apiurl, coords.Lat, coords.Lon, w.apikey)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, weatherURL, http.NoBody)
 	if err != nil {
-		return WeatherData{}, fmt.Errorf("failed to create request: %w", err)
+		return weather.Metrics{}, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	resp, err := w.httpClient.Do(req)
 	if err != nil {
-		return WeatherData{}, fmt.Errorf("failed to execute request: %w", err)
+		return weather.Metrics{}, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
@@ -50,7 +48,7 @@ func (w *OpenWeatherAPI) GetWeather(ctx context.Context, coords Coordinates) (We
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return WeatherData{}, fmt.Errorf("API returned status code: %d", resp.StatusCode)
+		return weather.Metrics{}, fmt.Errorf("API returned status code: %d", resp.StatusCode)
 	}
 
 	var data struct {
@@ -64,14 +62,14 @@ func (w *OpenWeatherAPI) GetWeather(ctx context.Context, coords Coordinates) (We
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return WeatherData{}, fmt.Errorf("failed to decode response: %w", err)
+		return weather.Metrics{}, fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	if len(data.Weather) == 0 {
-		return WeatherData{}, fmt.Errorf("no weather data available")
+		return weather.Metrics{}, fmt.Errorf("no weather data available")
 	}
 
-	weatherData := WeatherData{
+	weatherData := weather.Metrics{
 		Temperature: data.Main.Temperature,
 		Humidity:    data.Main.Humidity,
 		Description: data.Weather[0].Description,

@@ -1,10 +1,9 @@
 package scheduler
 
 import (
+	"Weather-Forecast-API/internal/handlers/weather"
 	"Weather-Forecast-API/internal/repository"
-	"Weather-Forecast-API/internal/services/notification"
 	"Weather-Forecast-API/internal/templates"
-	"Weather-Forecast-API/internal/weatherprovider"
 	"context"
 	"fmt"
 	"log"
@@ -15,15 +14,23 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-type Scheduler struct {
-	notifService    notification.NotificationService
-	weatherProvider weatherprovider.WeatherProvider
-	clock           Clock
-	requestTimeout  time.Duration
+type notificationManager interface {
+	SendMessage(channelType string, channelValue string, message string, subject string) error
 }
 
-type Clock interface {
+type weatherProviderManager interface {
+	GetWeatherByCity(ctx context.Context, city string) (weather.Metrics, error)
+}
+
+type clockManager interface {
 	Now() time.Time
+}
+
+type Scheduler struct {
+	notifService    notificationManager
+	weatherProvider weatherProviderManager
+	clock           clockManager
+	requestTimeout  time.Duration
 }
 
 type realClock struct{}
@@ -33,8 +40,8 @@ func (r realClock) Now() time.Time {
 }
 
 func NewScheduler(
-	notifService notification.NotificationService,
-	weatherProvider weatherprovider.WeatherProvider,
+	notifService notificationManager,
+	weatherProvider weatherProviderManager,
 	requestTimeout time.Duration,
 ) *Scheduler {
 	return &Scheduler{

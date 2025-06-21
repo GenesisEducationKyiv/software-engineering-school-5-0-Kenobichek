@@ -2,20 +2,24 @@ package weather
 
 import (
 	"Weather-Forecast-API/internal/response"
-	"Weather-Forecast-API/internal/weatherprovider"
 	"context"
 	"net/http"
 	"time"
 )
 
+type weatherProviderManager interface {
+	GetWeatherByCity(ctx context.Context, city string) (Metrics, error)
+}
+
 type Handler struct {
-	weatherProvider weatherprovider.WeatherProvider
+	weatherProvider weatherProviderManager
 	requestTimeout  time.Duration
 }
 
 func NewHandler(
-	provider weatherprovider.WeatherProvider,
-	timeout time.Duration) *Handler {
+	provider weatherProviderManager,
+	timeout time.Duration,
+) *Handler {
 	return &Handler{
 		weatherProvider: provider,
 		requestTimeout:  timeout,

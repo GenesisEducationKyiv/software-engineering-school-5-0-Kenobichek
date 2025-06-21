@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-type HTTPRouter interface {
+type httpRouteManager interface {
 	http.Handler
 
 	Route(pattern string, fn func(r chi.Router)) chi.Router
@@ -14,14 +14,14 @@ type HTTPRouter interface {
 	Handle(pattern string, h http.Handler)
 }
 
-func NewHTTPRouter() HTTPRouter {
+func NewHTTPRouter() chi.Router {
 	return chi.NewRouter()
 }
 
-type RouterManager interface {
-	GetRouter() HTTPRouter
-	RegisterRoutes()
-}
+//type RouterManager interface {
+//	GetRouter() httpRouteManager
+//	RegisterRoutes()
+//}
 
 type weatherManager interface {
 	GetWeather(writer http.ResponseWriter, request *http.Request)
@@ -33,35 +33,36 @@ type subscriptionManager interface {
 	Confirm(writer http.ResponseWriter, request *http.Request)
 }
 
-type ServerRouter struct {
-	router    HTTPRouter
+type Service struct {
+	router    httpRouteManager
 	subscribe subscriptionManager
 	weather   weatherManager
 }
 
-func NewRouter(
+func NewService(
 	weather weatherManager,
 	subscribe subscriptionManager,
-	router HTTPRouter) *ServerRouter {
-	return &ServerRouter{
+	router httpRouteManager,
+) *Service {
+	return &Service{
 		router:    router,
 		subscribe: subscribe,
 		weather:   weather,
 	}
 }
 
-func (r *ServerRouter) GetRouter() HTTPRouter {
+func (r *Service) GetRouter() http.Handler {
 	return r.router
 }
 
-func (r *ServerRouter) RegisterRoutes() {
-	outer := r
+func (r *Service) RegisterRoutes() {
+	srv := r
 
 	r.router.Route("/api", func(rt chi.Router) {
-		rt.Get("/weather", outer.weather.GetWeather)
-		rt.Post("/subscribe", outer.subscribe.Subscribe)
-		rt.Get("/confirm/{token}", outer.subscribe.Confirm)
-		rt.Get("/unsubscribe/{token}", outer.subscribe.Unsubscribe)
+		rt.Get("/weather", srv.weather.GetWeather)
+		rt.Post("/subscribe", srv.subscribe.Subscribe)
+		rt.Get("/confirm/{token}", srv.subscribe.Confirm)
+		rt.Get("/unsubscribe/{token}", srv.subscribe.Unsubscribe)
 	})
 
 	r.router.Get("/", func(w http.ResponseWriter, r *http.Request) {

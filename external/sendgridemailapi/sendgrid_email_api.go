@@ -6,24 +6,21 @@ import (
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
-type Notifier interface {
-	Send(target NotificationTarget, message, subject string) error
-}
-
 type SendgridNotifier struct {
-	client      SendGridClient
+	client      sendgridClientManager
 	senderName  string
 	senderEmail string
 }
 
-type SendGridClient interface {
+type sendgridClientManager interface {
 	Send(email *mail.SGMailV3) (*rest.Response, error)
 }
 
 func NewSendgridNotifier(
-	client SendGridClient,
+	client sendgridClientManager,
 	senderName string,
-	senderEmail string) *SendgridNotifier {
+	senderEmail string,
+) *SendgridNotifier {
 	return &SendgridNotifier{
 		client:      client,
 		senderName:  senderName,
