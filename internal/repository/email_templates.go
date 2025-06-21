@@ -1,12 +1,13 @@
 package repository
 
 import (
+	"Weather-Forecast-API/internal/templates"
 	"errors"
 
 	"Weather-Forecast-API/internal/db"
 )
 
-func GetTemplateByName(name string) (*MessageTemplate, error) {
+func GetTemplateByName(name templates.Name) (*MessageTemplate, error) {
 	var tpl MessageTemplate
 
 	query := `SELECT subject, message FROM email_templates WHERE name = $1`

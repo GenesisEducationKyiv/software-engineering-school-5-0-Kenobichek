@@ -5,6 +5,7 @@ import (
 	"Weather-Forecast-API/internal/response"
 	"Weather-Forecast-API/internal/services/notification"
 	"Weather-Forecast-API/internal/services/subscription"
+	"Weather-Forecast-API/internal/templates"
 	"strings"
 
 	"github.com/google/uuid"
@@ -44,7 +45,8 @@ func (h *SubscriptionHandler) Subscribe(writer http.ResponseWriter, request *htt
 		return
 	}
 
-	template, err := repository.GetTemplateByName("confirm")
+	template, err := repository.GetTemplateByName(templates.Confirm)
+
 	if err != nil {
 		response.RespondJSON(writer, http.StatusInternalServerError, "Failed to load confirmation template")
 		return
@@ -83,7 +85,7 @@ func (h *SubscriptionHandler) Unsubscribe(writer http.ResponseWriter, request *h
 		return
 	}
 
-	template, err := repository.GetTemplateByName("unsubscribe")
+	template, err := repository.GetTemplateByName(templates.Unsubscribe)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusInternalServerError, "Failed to load unsubscribe template")
 		return

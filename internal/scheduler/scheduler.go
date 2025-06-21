@@ -3,6 +3,7 @@ package scheduler
 import (
 	"Weather-Forecast-API/internal/repository"
 	"Weather-Forecast-API/internal/services/notification"
+	"Weather-Forecast-API/internal/templates"
 	"Weather-Forecast-API/internal/weatherprovider"
 	"context"
 	"fmt"
@@ -47,7 +48,7 @@ func NewScheduler(
 func (s *Scheduler) Start() (*cron.Cron, error) {
 	log.Println("[Scheduler] Starting scheduler...")
 
-	template, err := repository.GetTemplateByName("weather_update")
+	template, err := repository.GetTemplateByName(templates.WeatherUpdate)
 	if err != nil {
 		return nil, fmt.Errorf("[Scheduler] Failed to get template: %v", err)
 	}
