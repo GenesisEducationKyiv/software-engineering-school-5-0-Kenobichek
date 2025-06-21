@@ -11,14 +11,12 @@ import (
 )
 
 func CreateSubscription(subscription *Subscription) error {
-	subscription.NextNotifiedAt = time.Now().Add(time.Duration(subscription.FrequencyMinutes) * time.Minute)
-
 	_, err := db.DataBase.Exec(`
 		INSERT INTO subscriptions 
 		(channel_type, channel_value, city, frequency_minutes, token, next_notified_at)
-		VALUES ($1, $2, $3, $4, $5, $6)`,
+		VALUES ($1, $2, $3, $4, $5, NOW() + ($6 * interval '1 minute'))`,
 		subscription.ChannelType, subscription.ChannelValue, subscription.City,
-		subscription.FrequencyMinutes, subscription.Token, subscription.NextNotifiedAt,
+		subscription.FrequencyMinutes, subscription.Token, subscription.FrequencyMinutes,
 	)
 
 	if err != nil && strings.Contains(err.Error(), "unique") {
@@ -27,7 +25,6 @@ func CreateSubscription(subscription *Subscription) error {
 
 	return nil
 }
-
 func ConfirmByToken(token string) error {
 	result, err := db.DataBase.Exec(`
 		UPDATE subscriptions
