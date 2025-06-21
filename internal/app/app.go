@@ -20,12 +20,12 @@ type App struct {
 func New(cfg Config) *App { return &App{config: cfg} }
 
 func (a *App) Run() error {
-	cfg, err := a.ensureConfig()
+	var err error
+	a.config, err = a.ensureConfig()
 	if err != nil {
 		return err
 	}
-
-	dbConn, err := a.initDatabase(cfg.GetDatabaseDSN())
+	dbConn, err := a.initDatabase(a.config.GetDatabaseDSN())
 	if err != nil {
 		return err
 	}
@@ -42,14 +42,14 @@ func (a *App) Run() error {
 	subSvc := subscription.NewSubscriptionService()
 	notifSvc := notification.NewNotificationService(emailNotifier)
 
-	taskScheduler := scheduler.NewScheduler(cfg, notifSvc, weatherProv)
+	taskScheduler := scheduler.NewScheduler(a.config, notifSvc, weatherProv)
 	errCh := make(chan error, 1)
 
 	a.startScheduler(taskScheduler, errCh)
 
 	router := a.buildHTTPRouter(weatherProv, subSvc, notifSvc)
 
-	server := a.newHTTPServer(cfg.GetServerAddress(), router)
+	server := a.newHTTPServer(a.config.GetServerAddress(), router)
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
