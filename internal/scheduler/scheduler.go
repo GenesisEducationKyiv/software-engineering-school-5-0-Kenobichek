@@ -17,6 +17,17 @@ import (
 type Scheduler struct {
 	notifService    notification.NotificationService
 	weatherProvider weatherprovider.WeatherProvider
+	clock           Clock
+}
+
+type Clock interface {
+	Now() time.Time
+}
+
+type realClock struct{}
+
+func (r realClock) Now() time.Time {
+	return time.Now()
 }
 
 func NewScheduler(
@@ -25,6 +36,7 @@ func NewScheduler(
 	return &Scheduler{
 		notifService:    notifService,
 		weatherProvider: weatherProvider,
+		clock:           realClock{},
 	}
 }
 
@@ -74,7 +86,7 @@ func (s *Scheduler) Start() (*cron.Cron, error) {
 				continue
 			}
 
-			nextNotification := time.Now().Add(time.Duration(sub.FrequencyMinutes) * time.Minute)
+			nextNotification := s.clock.Now().Add(time.Duration(sub.FrequencyMinutes) * time.Minute)
 			log.Printf("[Scheduler] Updating next notification time for subscription %d to %v\n", sub.ID, nextNotification)
 			err = repository.UpdateNextNotification(sub.ID, nextNotification)
 			if err != nil {
