@@ -2,7 +2,6 @@ package routes
 
 import (
 	"Weather-Forecast-API/internal/handlers/subscribe"
-	"Weather-Forecast-API/internal/handlers/weather"
 	"github.com/go-chi/chi/v5"
 	"net/http"
 )
@@ -25,14 +24,18 @@ type RouterManager interface {
 	RegisterRoutes()
 }
 
+type weatherManager interface {
+	GetWeather(writer http.ResponseWriter, request *http.Request)
+}
+
 type ServerRouter struct {
 	router    HTTPRouter
 	subscribe subscribe.SubscriptionManager
-	weather   weather.WeatherManager
+	weather   weatherManager
 }
 
 func NewRouter(
-	weather weather.WeatherManager,
+	weather weatherManager,
 	subscribe subscribe.SubscriptionManager,
 	router HTTPRouter) *ServerRouter {
 	return &ServerRouter{

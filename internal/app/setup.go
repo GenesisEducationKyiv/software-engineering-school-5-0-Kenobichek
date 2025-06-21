@@ -84,7 +84,7 @@ func (a *App) buildHTTPRouter(
 ) http.Handler {
 	rtr := routes.NewHTTPRouter()
 
-	weatherHandler := weather.NewWeatherHandler(
+	weatherHandler := weather.NewHandler(
 		weatherProv,
 		weatherHandlerTimeout,
 	)

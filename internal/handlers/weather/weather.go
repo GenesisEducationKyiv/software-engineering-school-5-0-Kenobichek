@@ -8,25 +8,21 @@ import (
 	"time"
 )
 
-type WeatherManager interface {
-	GetWeather(writer http.ResponseWriter, request *http.Request)
-}
-
-type WeatherHandler struct {
+type Handler struct {
 	weatherProvider weatherprovider.WeatherProvider
 	requestTimeout  time.Duration
 }
 
-func NewWeatherHandler(
+func NewHandler(
 	provider weatherprovider.WeatherProvider,
-	timeout time.Duration) *WeatherHandler {
-	return &WeatherHandler{
+	timeout time.Duration) *Handler {
+	return &Handler{
 		weatherProvider: provider,
 		requestTimeout:  timeout,
 	}
 }
 
-func (h *WeatherHandler) GetWeather(writer http.ResponseWriter, request *http.Request) {
+func (h *Handler) GetWeather(writer http.ResponseWriter, request *http.Request) {
 	city := request.URL.Query().Get("city")
 	if city == "" {
 		response.RespondJSON(writer, http.StatusBadRequest, "City parameter is required")
