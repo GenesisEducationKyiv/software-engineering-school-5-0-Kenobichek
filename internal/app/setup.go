@@ -26,7 +26,7 @@ func (a *App) ensureConfig() (Config, error) {
 	return a.config, nil
 }
 
-func initDatabase(dsn string) (*sql.DB, error) {
+func (a *App) initDatabase(dsn string) (*sql.DB, error) {
 	dbConn, err := db.Init(dsn)
 	if err != nil {
 		return nil, err
@@ -37,19 +37,19 @@ func initDatabase(dsn string) (*sql.DB, error) {
 	return dbConn, nil
 }
 
-func buildEmailNotifier(cfg Config) notifier.EmailNotifier {
-	sgClient := sendgrid.NewSendClient(cfg.SendGrid.APIKey)
-	sgNotifier := sendgridemailapi.NewSendgridNotifier(sgClient, cfg)
+func (a *App) buildEmailNotifier() notifier.EmailNotifier {
+	sgClient := sendgrid.NewSendClient(a.config.SendGrid.APIKey)
+	sgNotifier := sendgridemailapi.NewSendgridNotifier(sgClient, a.config)
 	return notifier.NewSendGridEmailNotifier(sgNotifier)
 }
 
-func buildWeatherProvider(cfg Config, client *http.Client) weatherprovider.WeatherProvider {
-	geoSvc := openweather.NewOpenWeatherGeocodingService(cfg, client)
-	owAPI := openweather.NewOpenWeatherAPI(cfg, client)
+func (a *App) buildWeatherProvider(client *http.Client) weatherprovider.WeatherProvider {
+	geoSvc := openweather.NewOpenWeatherGeocodingService(a.config, client)
+	owAPI := openweather.NewOpenWeatherAPI(a.config, client)
 	return weatherprovider.NewOpenWeatherProvider(geoSvc, owAPI)
 }
 
-func buildHTTPRouter(
+func (a *App) buildHTTPRouter(
 	weatherProv weatherprovider.WeatherProvider,
 	subSvc subscription.SubscriptionService,
 	notifSvc notification.NotificationService,
@@ -62,7 +62,7 @@ func buildHTTPRouter(
 	return appRouter.GetRouter()
 }
 
-func newHTTPServer(addr string, handler http.Handler) *http.Server {
+func (a *App) newHTTPServer(addr string, handler http.Handler) *http.Server {
 	return &http.Server{
 		Addr:         addr,
 		Handler:      handler,

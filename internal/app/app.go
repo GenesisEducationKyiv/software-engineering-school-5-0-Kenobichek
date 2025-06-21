@@ -25,7 +25,7 @@ func (a *App) Run() error {
 		return err
 	}
 
-	dbConn, err := initDatabase(cfg.GetDatabaseDSN())
+	dbConn, err := a.initDatabase(cfg.GetDatabaseDSN())
 	if err != nil {
 		return err
 	}
@@ -35,9 +35,9 @@ func (a *App) Run() error {
 		}
 	}()
 
-	emailNotifier := buildEmailNotifier(cfg)
+	emailNotifier := a.buildEmailNotifier()
 	httpClient := httpclient.New()
-	weatherProv := buildWeatherProvider(cfg, httpClient)
+	weatherProv := a.buildWeatherProvider(httpClient)
 
 	subSvc := subscription.NewSubscriptionService()
 	notifSvc := notification.NewNotificationService(emailNotifier)
@@ -47,9 +47,9 @@ func (a *App) Run() error {
 
 	a.startScheduler(taskScheduler, errCh)
 
-	router := buildHTTPRouter(weatherProv, subSvc, notifSvc)
+	router := a.buildHTTPRouter(weatherProv, subSvc, notifSvc)
 
-	server := newHTTPServer(cfg.GetServerAddress(), router)
+	server := a.newHTTPServer(cfg.GetServerAddress(), router)
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
