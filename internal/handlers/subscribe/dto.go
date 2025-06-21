@@ -1,6 +1,6 @@
 package subscribe
 
-type SubscribeInput struct {
+type Input struct {
 	ChannelType  string
 	ChannelValue string
 	City         string

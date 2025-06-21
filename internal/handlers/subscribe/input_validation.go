@@ -8,21 +8,26 @@ import (
 	"strings"
 )
 
-func ParseAndValidateSubscribeInput(r *http.Request) (SubscribeInput, error) {
+const (
+	hourlyMinutes = 60
+	dailyMinutes  = 1440
+)
+
+func parseSubscribeInput(r *http.Request) (Input, error) {
 	channelValue := strings.TrimSpace(r.FormValue("email"))
 	city := strings.TrimSpace(r.FormValue("city"))
 	frequency := strings.TrimSpace(r.FormValue("frequency"))
 	if channelValue == "" || city == "" || frequency == "" {
-		return SubscribeInput{}, errors.New("invalid input")
+		return Input{}, errors.New("invalid input")
 	}
 	channelType := strings.TrimSpace(r.FormValue("channelType"))
 	if channelType == "" {
 		channelType = string(sendgridemailapi.ChannelEmail)
 	}
-	if !IsValidChannel(channelType) {
-		return SubscribeInput{}, errors.New("unsupported channelType")
+	if !isValidChannel(channelType) {
+		return Input{}, errors.New("unsupported channelType")
 	}
-	return SubscribeInput{
+	return Input{
 		ChannelType:  channelType,
 		ChannelValue: channelValue,
 		City:         city,
@@ -30,7 +35,7 @@ func ParseAndValidateSubscribeInput(r *http.Request) (SubscribeInput, error) {
 	}, nil
 }
 
-func ParseAndValidateTokenInput(r *http.Request) (TokenInput, error) {
+func parseTokenFromRequest(r *http.Request) (TokenInput, error) {
 	token := strings.TrimSpace(chi.URLParam(r, "token"))
 
 	if token == "" {
@@ -41,8 +46,22 @@ func ParseAndValidateTokenInput(r *http.Request) (TokenInput, error) {
 	}, nil
 }
 
-func IsValidChannel(channel string) bool {
-	_, ok := SupportedChannels()[channel]
+func isValidChannel(channel string) bool {
+	_, ok := validChannels()[channel]
 
 	return ok
+}
+
+func validChannels() map[string]struct{} {
+	return map[string]struct{}{
+		"email": {},
+		// "sms":   {},
+	}
+}
+
+func frequencyToMinutes() map[string]int {
+	return map[string]int{
+		"hourly": hourlyMinutes,
+		"daily":  dailyMinutes,
+	}
 }

@@ -2,8 +2,8 @@ package subscribe
 
 import "fmt"
 
-func ConvertFrequency(freq string) (int, error) {
-	mins, ok := FrequencyToMinutes()[freq]
+func convertFrequencyToMinutes(freq string) (int, error) {
+	mins, ok := frequencyToMinutes()[freq]
 	if !ok {
 		return 0, fmt.Errorf("invalid frequency: %s", freq)
 	}

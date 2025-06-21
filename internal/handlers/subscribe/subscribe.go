@@ -32,13 +32,13 @@ func NewSubscribeHandler(
 }
 
 func (h *SubscriptionHandler) Subscribe(writer http.ResponseWriter, request *http.Request) {
-	input, err := ParseAndValidateSubscribeInput(request)
+	input, err := parseSubscribeInput(request)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	frequencyMinutes, err := ConvertFrequency(input.Frequency)
+	frequencyMinutes, err := convertFrequencyToMinutes(input.Frequency)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusBadRequest, err.Error())
 		return
@@ -77,7 +77,7 @@ func (h *SubscriptionHandler) Subscribe(writer http.ResponseWriter, request *htt
 }
 
 func (h *SubscriptionHandler) Unsubscribe(writer http.ResponseWriter, request *http.Request) {
-	input, err := ParseAndValidateTokenInput(request)
+	input, err := parseTokenFromRequest(request)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusBadRequest, err.Error())
 		return
@@ -116,7 +116,7 @@ func (h *SubscriptionHandler) Unsubscribe(writer http.ResponseWriter, request *h
 }
 
 func (h *SubscriptionHandler) Confirm(writer http.ResponseWriter, request *http.Request) {
-	input, err := ParseAndValidateTokenInput(request)
+	input, err := parseTokenFromRequest(request)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusBadRequest, err.Error())
 		return
