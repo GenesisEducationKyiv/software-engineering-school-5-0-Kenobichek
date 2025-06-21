@@ -1,47 +1,47 @@
 package weather
 
 import (
-	"Weather-Forecast-API/internal/utilities"
-	"Weather-Forecast-API/internal/weather"
+	"Weather-Forecast-API/internal/response"
 	"context"
 	"net/http"
-	"os"
 	"time"
 )
 
-type WeatherHandler struct {
-	provider weather.WeatherProvider
-	timeout  time.Duration
+type weatherProviderManager interface {
+	GetWeatherByCity(ctx context.Context, city string) (Metrics, error)
 }
 
-func NewWeatherHandler(provider weather.WeatherProvider) *WeatherHandler {
-	return &WeatherHandler{
-		provider: provider,
-		timeout:  5 * time.Second,
+type Handler struct {
+	weatherProvider weatherProviderManager
+	requestTimeout  time.Duration
+}
+
+func NewHandler(
+	provider weatherProviderManager,
+	timeout time.Duration,
+) *Handler {
+	return &Handler{
+		weatherProvider: provider,
+		requestTimeout:  timeout,
 	}
 }
 
-func NewWeatherHandlerWithDefault() *WeatherHandler {
-	provider := weather.NewOpenWeatherProvider(os.Getenv("OPENWEATHERMAP_API_KEY"))
-	return NewWeatherHandler(provider)
-}
-
-func (h *WeatherHandler) GetWeather(writer http.ResponseWriter, request *http.Request) {
+func (h *Handler) GetWeather(writer http.ResponseWriter, request *http.Request) {
 	city := request.URL.Query().Get("city")
 	if city == "" {
-		utilities.RespondJSON(writer, http.StatusBadRequest, "City parameter is required")
+		response.RespondJSON(writer, http.StatusBadRequest, "City parameter is required")
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(request.Context(), h.timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), h.requestTimeout)
 	defer cancel()
 
-	data, err := h.provider.GetWeatherByCity(ctx, city)
+	data, err := h.weatherProvider.GetWeatherByCity(ctx, city)
 	if err != nil {
-		utilities.RespondJSON(writer, http.StatusBadRequest, "Failed to get weather: "+err.Error())
+		response.RespondJSON(writer, http.StatusBadRequest, "Failed to get weather: "+err.Error())
 		return
 	}
 
-	utilities.RespondDataJSON(writer, http.StatusOK, data)
+	response.RespondDataJSON(writer, http.StatusOK, data)
 
 }

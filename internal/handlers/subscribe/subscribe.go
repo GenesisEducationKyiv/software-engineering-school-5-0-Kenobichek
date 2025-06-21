@@ -1,51 +1,63 @@
 package subscribe
 
 import (
-	"Weather-Forecast-API/internal/models"
 	"Weather-Forecast-API/internal/repository"
-	"Weather-Forecast-API/internal/services/notification"
-	"Weather-Forecast-API/internal/services/subscription"
+	"Weather-Forecast-API/internal/response"
+	"Weather-Forecast-API/internal/templates"
 	"strings"
 
-	"Weather-Forecast-API/internal/utilities"
 	"github.com/google/uuid"
 	"net/http"
 )
 
-type SubscribeHandler struct {
-	subscriptionService subscription.SubscriptionService
-	notificationService notification.NotificationService
+type subscriptionManager interface {
+	Subscribe(sub *repository.Subscription) error
+	Unsubscribe(sub *repository.Subscription) error
+	Confirm(sub *repository.Subscription) error
 }
 
-func NewSubscribeHandler() *SubscribeHandler {
-	return &SubscribeHandler{
-		subscriptionService: subscription.NewSubscriptionService(),
-		notificationService: notification.NewNotificationService(),
+type notificationManager interface {
+	SendMessage(channelType string, channelValue string, message string, subject string) error
+}
+
+type Handler struct {
+	subscriptionService subscriptionManager
+	notificationService notificationManager
+}
+
+func NewHandler(
+	subscriptionService subscriptionManager,
+	notificationService notificationManager,
+) *Handler {
+	return &Handler{
+		subscriptionService: subscriptionService,
+		notificationService: notificationService,
 	}
 }
 
-func (h *SubscribeHandler) Subscribe(writer http.ResponseWriter, request *http.Request) {
-	input, err := utilities.ParseAndValidateSubscribeInput(request)
+func (h *Handler) Subscribe(writer http.ResponseWriter, request *http.Request) {
+	input, err := parseSubscribeInput(request)
 	if err != nil {
-		utilities.RespondJSON(writer, http.StatusBadRequest, err.Error())
+		response.RespondJSON(writer, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	frequencyMinutes, err := utilities.ConvertFrequency(input.Frequency)
+	frequencyMinutes, err := convertFrequencyToMinutes(input.Frequency)
 	if err != nil {
-		utilities.RespondJSON(writer, http.StatusBadRequest, err.Error())
+		response.RespondJSON(writer, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	template, err := repository.GetTemplateByName("confirm")
+	template, err := repository.GetTemplateByName(templates.Confirm)
+
 	if err != nil {
-		utilities.RespondJSON(writer, http.StatusInternalServerError, "Failed to load confirmation template")
+		response.RespondJSON(writer, http.StatusInternalServerError, "Failed to load confirmation template")
 		return
 	}
 
 	token := uuid.NewString()
 
-	sub := &models.Subscription{
+	sub := &repository.Subscription{
 		ChannelType:      input.ChannelType,
 		ChannelValue:     input.ChannelValue,
 		City:             input.City,
@@ -54,7 +66,7 @@ func (h *SubscribeHandler) Subscribe(writer http.ResponseWriter, request *http.R
 	}
 
 	if err := h.subscriptionService.Subscribe(sub); err != nil {
-		utilities.RespondJSON(writer, http.StatusConflict, "Already subscribed or DB error")
+		response.RespondJSON(writer, http.StatusConflict, "Already subscribed or DB error")
 		return
 	}
 
@@ -62,37 +74,37 @@ func (h *SubscribeHandler) Subscribe(writer http.ResponseWriter, request *http.R
 
 	err = h.notificationService.SendMessage(input.ChannelType, input.ChannelValue, message, template.Subject)
 	if err != nil {
-		utilities.RespondJSON(writer, http.StatusInternalServerError, "Failed to send message. Error: "+err.Error())
+		response.RespondJSON(writer, http.StatusInternalServerError, "Failed to send message. Error: "+err.Error())
 		return
 	}
 
-	utilities.RespondJSON(writer, http.StatusOK, "Subscription successful. Confirmation sent.")
+	response.RespondJSON(writer, http.StatusOK, "Subscription successful. Confirmation sent.")
 }
 
-func (h *SubscribeHandler) Unsubscribe(writer http.ResponseWriter, request *http.Request) {
-	input, err := utilities.ParseAndValidateTokenInput(request)
+func (h *Handler) Unsubscribe(writer http.ResponseWriter, request *http.Request) {
+	input, err := parseTokenFromRequest(request)
 	if err != nil {
-		utilities.RespondJSON(writer, http.StatusBadRequest, err.Error())
+		response.RespondJSON(writer, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	template, err := repository.GetTemplateByName("unsubscribe")
+	template, err := repository.GetTemplateByName(templates.Unsubscribe)
 	if err != nil {
-		utilities.RespondJSON(writer, http.StatusInternalServerError, "Failed to load unsubscribe template")
+		response.RespondJSON(writer, http.StatusInternalServerError, "Failed to load unsubscribe template")
 		return
 	}
 
 	sub, err := repository.GetSubscriptionByToken(input.Token)
 	if err != nil {
-		utilities.RespondJSON(writer, http.StatusConflict, err.Error())
+		response.RespondJSON(writer, http.StatusConflict, err.Error())
 		return
 	}
 
 	if err := h.subscriptionService.Unsubscribe(sub); err != nil {
-		if err.Error() == "not found" {
-			utilities.RespondJSON(writer, http.StatusNotFound, "Token not found")
+		if strings.Contains(err.Error(), "not found") {
+			response.RespondJSON(writer, http.StatusNotFound, "Token not found")
 		} else {
-			utilities.RespondJSON(writer, http.StatusBadRequest, "Failed to confirm subscription: "+err.Error())
+			response.RespondJSON(writer, http.StatusBadRequest, "Failed to confirm subscription: "+err.Error())
 		}
 		return
 	}
@@ -101,34 +113,34 @@ func (h *SubscribeHandler) Unsubscribe(writer http.ResponseWriter, request *http
 
 	err = h.notificationService.SendMessage(sub.ChannelType, sub.ChannelValue, message, template.Subject)
 	if err != nil {
-		utilities.RespondJSON(writer, http.StatusInternalServerError, "Failed to send message. Error: "+err.Error())
+		response.RespondJSON(writer, http.StatusInternalServerError, "Failed to send message. Error: "+err.Error())
 		return
 	}
 
-	utilities.RespondJSON(writer, http.StatusOK, "You have been unsubscribed successfully.")
+	response.RespondJSON(writer, http.StatusOK, "You have been unsubscribed successfully.")
 }
 
-func (h *SubscribeHandler) Confirm(writer http.ResponseWriter, request *http.Request) {
-	input, err := utilities.ParseAndValidateTokenInput(request)
+func (h *Handler) Confirm(writer http.ResponseWriter, request *http.Request) {
+	input, err := parseTokenFromRequest(request)
 	if err != nil {
-		utilities.RespondJSON(writer, http.StatusBadRequest, err.Error())
+		response.RespondJSON(writer, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	sub, err := repository.GetSubscriptionByToken(input.Token)
 	if err != nil {
-		utilities.RespondJSON(writer, http.StatusConflict, err.Error())
+		response.RespondJSON(writer, http.StatusConflict, err.Error())
 		return
 	}
 
 	if err := h.subscriptionService.Confirm(sub); err != nil {
-		if err.Error() == "not found" {
-			utilities.RespondJSON(writer, http.StatusNotFound, "Token not found")
+		if strings.Contains(err.Error(), "not found") {
+			response.RespondJSON(writer, http.StatusNotFound, "Token not found")
 		} else {
-			utilities.RespondJSON(writer, http.StatusBadRequest, "Failed to confirm subscription: "+err.Error())
+			response.RespondJSON(writer, http.StatusBadRequest, "Failed to confirm subscription: "+err.Error())
 		}
 		return
 	}
 
-	utilities.RespondJSON(writer, http.StatusOK, "Subscription confirmed successfully.")
+	response.RespondJSON(writer, http.StatusOK, "Subscription confirmed successfully.")
 }
