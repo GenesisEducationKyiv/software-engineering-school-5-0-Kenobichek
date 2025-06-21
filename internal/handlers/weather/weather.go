@@ -33,7 +33,7 @@ func (h *WeatherHandler) GetWeather(writer http.ResponseWriter, request *http.Re
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(request.Context(), h.requestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), h.requestTimeout)
 	defer cancel()
 
 	data, err := h.weatherProvider.GetWeatherByCity(ctx, city)

@@ -42,7 +42,7 @@ func (a *App) Run() error {
 	subSvc := subscription.NewSubscriptionService()
 	notifSvc := notification.NewNotificationService(emailNotifier)
 
-	taskScheduler := scheduler.NewScheduler(notifSvc, weatherProv)
+	taskScheduler := scheduler.NewScheduler(notifSvc, weatherProv, weatherHandlerTimeout)
 	errCh := make(chan error, 1)
 
 	a.runSchedulerAsync(taskScheduler, errCh)

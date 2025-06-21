@@ -18,6 +18,7 @@ type Scheduler struct {
 	notifService    notification.NotificationService
 	weatherProvider weatherprovider.WeatherProvider
 	clock           Clock
+	requestTimeout  time.Duration
 }
 
 type Clock interface {
@@ -32,11 +33,14 @@ func (r realClock) Now() time.Time {
 
 func NewScheduler(
 	notifService notification.NotificationService,
-	weatherProvider weatherprovider.WeatherProvider) *Scheduler {
+	weatherProvider weatherprovider.WeatherProvider,
+	requestTimeout time.Duration,
+) *Scheduler {
 	return &Scheduler{
 		notifService:    notifService,
 		weatherProvider: weatherProvider,
 		clock:           realClock{},
+		requestTimeout:  requestTimeout,
 	}
 }
 
@@ -51,7 +55,7 @@ func (s *Scheduler) Start() (*cron.Cron, error) {
 	cronScheduler := cron.New()
 
 	_, err = cronScheduler.AddFunc("@every 1m", func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
 		defer cancel()
 
 		log.Println("[Scheduler] Checking subscriptions...")
