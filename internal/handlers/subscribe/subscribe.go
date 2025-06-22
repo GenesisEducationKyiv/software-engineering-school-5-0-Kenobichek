@@ -1,9 +1,8 @@
 package subscribe
 
 import (
-	"Weather-Forecast-API/internal/repository"
+	"Weather-Forecast-API/internal/repository/subscriptions"
 	"Weather-Forecast-API/internal/response"
-	"Weather-Forecast-API/internal/templates"
 	"strings"
 
 	"github.com/google/uuid"
@@ -11,13 +10,15 @@ import (
 )
 
 type subscriptionManager interface {
-	Subscribe(sub *repository.Subscription) error
-	Unsubscribe(sub *repository.Subscription) error
-	Confirm(sub *repository.Subscription) error
+	Subscribe(sub *subscriptions.Info) error
+	Unsubscribe(sub *subscriptions.Info) error
+	Confirm(sub *subscriptions.Info) error
+	GetSubscriptionByToken(token string) (*subscriptions.Info, error)
 }
 
 type notificationManager interface {
-	SendMessage(channelType string, channelValue string, message string, subject string) error
+	SendConfirmation(channel string, recipient string, token string) error
+	SendUnsubscribe(channel string, recipient string, city string) error
 }
 
 type Handler struct {
@@ -48,16 +49,9 @@ func (h *Handler) Subscribe(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	template, err := repository.GetTemplateByName(templates.Confirm)
-
-	if err != nil {
-		response.RespondJSON(writer, http.StatusInternalServerError, "Failed to load confirmation template")
-		return
-	}
-
 	token := uuid.NewString()
 
-	sub := &repository.Subscription{
+	sub := &subscriptions.Info{
 		ChannelType:      input.ChannelType,
 		ChannelValue:     input.ChannelValue,
 		City:             input.City,
@@ -70,9 +64,7 @@ func (h *Handler) Subscribe(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	message := strings.ReplaceAll(template.Message, "{{ confirm_token }}", token)
-
-	err = h.notificationService.SendMessage(input.ChannelType, input.ChannelValue, message, template.Subject)
+	err = h.notificationService.SendConfirmation(input.ChannelType, input.ChannelValue, token)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusInternalServerError, "Failed to send message. Error: "+err.Error())
 		return
@@ -88,13 +80,7 @@ func (h *Handler) Unsubscribe(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	template, err := repository.GetTemplateByName(templates.Unsubscribe)
-	if err != nil {
-		response.RespondJSON(writer, http.StatusInternalServerError, "Failed to load unsubscribe template")
-		return
-	}
-
-	sub, err := repository.GetSubscriptionByToken(input.Token)
+	sub, err := h.subscriptionService.GetSubscriptionByToken(input.Token)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusConflict, err.Error())
 		return
@@ -109,9 +95,7 @@ func (h *Handler) Unsubscribe(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	message := strings.ReplaceAll(template.Message, "{{ city }}", sub.City)
-
-	err = h.notificationService.SendMessage(sub.ChannelType, sub.ChannelValue, message, template.Subject)
+	err = h.notificationService.SendUnsubscribe(sub.ChannelType, sub.ChannelValue, sub.City)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusInternalServerError, "Failed to send message. Error: "+err.Error())
 		return
@@ -127,7 +111,7 @@ func (h *Handler) Confirm(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	sub, err := repository.GetSubscriptionByToken(input.Token)
+	sub, err := h.subscriptionService.GetSubscriptionByToken(input.Token)
 	if err != nil {
 		response.RespondJSON(writer, http.StatusConflict, err.Error())
 		return

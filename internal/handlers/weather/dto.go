@@ -9,4 +9,5 @@ type Metrics struct {
 	Temperature float64
 	Humidity    float64
 	Description string
+	City        string
 }
