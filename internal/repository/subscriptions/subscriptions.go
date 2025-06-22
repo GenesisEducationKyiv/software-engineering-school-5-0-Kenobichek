@@ -1,4 +1,4 @@
-package repository
+package subscriptions
 
 import (
 	"database/sql"
@@ -6,12 +6,20 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"Weather-Forecast-API/internal/db"
 )
 
-func CreateSubscription(subscription *Subscription) error {
-	_, err := db.DataBase.Exec(`
+type Repository struct {
+	db *sql.DB
+}
+
+func New(db *sql.DB) *Repository {
+	return &Repository{
+		db: db,
+	}
+}
+
+func (r *Repository) CreateSubscription(subscription *Info) error {
+	_, err := r.db.Exec(`
 		INSERT INTO subscriptions 
 		(channel_type, channel_value, city, frequency_minutes, token, next_notified_at)
 		VALUES ($1, $2, $3, $4, $5, NOW() + ($6 * interval '1 minute'))`,
@@ -25,8 +33,8 @@ func CreateSubscription(subscription *Subscription) error {
 
 	return nil
 }
-func ConfirmByToken(token string) error {
-	result, err := db.DataBase.Exec(`
+func (r *Repository) ConfirmByToken(token string) error {
+	result, err := r.db.Exec(`
 		UPDATE subscriptions
 		SET confirmed = TRUE
 		WHERE token = $1`, token)
@@ -46,8 +54,8 @@ func ConfirmByToken(token string) error {
 	return nil
 }
 
-func UnsubscribeByToken(token string) error {
-	result, err := db.DataBase.Exec(`DELETE FROM subscriptions WHERE token = $1`, token)
+func (r *Repository) UnsubscribeByToken(token string) error {
+	result, err := r.db.Exec(`DELETE FROM subscriptions WHERE token = $1`, token)
 	if err != nil {
 		return errors.New("failed delete subscription")
 	}
@@ -64,21 +72,21 @@ func UnsubscribeByToken(token string) error {
 	return nil
 }
 
-func GetDueSubscriptions() []Subscription {
-	rows, err := db.DataBase.Query(
+func (r *Repository) GetDueSubscriptions() []Info {
+	rows, err := r.db.Query(
 		`	SELECT id, channel_type, channel_value, city, frequency_minutes
 			FROM subscriptions
 			WHERE confirmed = TRUE AND next_notified_at <= NOW()`,
 	)
 
-	var subs []Subscription
+	var subs []Info
 
 	if err != nil {
 		return subs
 	}
 
 	for rows.Next() {
-		var s Subscription
+		var s Info
 
 		if err := rows.Scan(&s.ID, &s.ChannelType, &s.ChannelValue, &s.City, &s.FrequencyMinutes); err != nil {
 			return subs
@@ -93,8 +101,8 @@ func GetDueSubscriptions() []Subscription {
 
 	return subs
 }
-func UpdateNextNotification(id int, next time.Time) error {
-	_, err := db.DataBase.Exec(`UPDATE subscriptions SET next_notified_at = $1 WHERE id = $2`, next, id)
+func (r *Repository) UpdateNextNotification(id int, next time.Time) error {
+	_, err := r.db.Exec(`UPDATE subscriptions SET next_notified_at = $1 WHERE id = $2`, next, id)
 	if err != nil {
 		return fmt.Errorf("failed to update next_notified_at for id %d: %w", id, err)
 	}
@@ -102,14 +110,14 @@ func UpdateNextNotification(id int, next time.Time) error {
 	return nil
 }
 
-func GetSubscriptionByToken(token string) (*Subscription, error) {
-	row := db.DataBase.QueryRow(`
+func (r *Repository) GetSubscriptionByToken(token string) (*Info, error) {
+	row := r.db.QueryRow(`
 		SELECT id, channel_type, channel_value, city, frequency_minutes, confirmed, token, next_notified_at, created_at
 		FROM subscriptions
 		WHERE token = $1
 	`, token)
 
-	var subscription Subscription
+	var subscription Info
 	err := row.Scan(
 		&subscription.ID,
 		&subscription.ChannelType,
