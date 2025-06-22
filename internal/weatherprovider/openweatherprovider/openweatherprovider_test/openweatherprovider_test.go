@@ -45,7 +45,7 @@ func TestGetWeatherByCity(t *testing.T) {
 			city:            "New York",
 			mockCoords:      weather.Coordinates{Lat: 40.7128, Lon: -74.0060},
 			mockWeather:     weather.Metrics{Temperature: 22.5, Humidity: 60.0, Description: "Sunny"},
-			expectedMetrics: weather.Metrics{Temperature: 22.5, Humidity: 60.0, Description: "Sunny"},
+			expectedMetrics: weather.Metrics{Temperature: 22.5, Humidity: 60.0, Description: "Sunny", City: "New York"},
 		},
 		{
 			name:          "empty city",
