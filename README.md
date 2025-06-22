@@ -21,8 +21,8 @@ Prerequisites: Go ≥ 1.21 installed.
 Command | What it runs
 ------- | ------------
 `go test -v -short ./...` | Unit tests (fast, in-memory)
-`go test -v -tags=integration ./...` | Integration tests (needs deps)
-`go test -v -tags=e2e ./...` | End-to-End tests
+`go test -v -tags=integration ./tests/integration/...` | Integration tests (needs deps)
+`go test -v -tags=e2e ./tests/e2e/...` | End-to-End tests
 `go test -v ./...` | Everything
 
 CI runs the same sequence: unit → integration → e2e.
