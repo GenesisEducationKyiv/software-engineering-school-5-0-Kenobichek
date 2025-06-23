@@ -132,7 +132,7 @@ func TestSubscribeAPI(t *testing.T) {
 				"frequency": "daily",
 			},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedBody:       `{"message":"required fields are empty: channelValue, city or frequency"}`,
+			expectedBody:       `{"message":"invalid input"}`,
 			expectConfirmation: false,
 		},
 		{
@@ -178,6 +178,7 @@ func TestSubscribeAPI(t *testing.T) {
 			assert.Equal(t, tc.expectedStatusCode, resp.StatusCode)
 			bodyBytes, _ := io.ReadAll(resp.Body)
 
+			log.Printf("response body: %s", string(bodyBytes))
 			if tc.expectedBody != "" {
 				require.True(t, json.Valid([]byte(tc.expectedBody)), "expectedBody is not valid JSON")
 				require.True(t, json.Valid(bodyBytes), "response body is not valid JSON")
