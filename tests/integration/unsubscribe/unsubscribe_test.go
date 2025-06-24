@@ -65,11 +65,11 @@ func TestUnsubscribeAPI(t *testing.T) {
 			mockNotif := newMockNotificationService()
 			appSrv := newTestServer(t, newAppRouterWithDB(t, database, mockNotif))
 
-			body, contentType := multipartBody(t, tc.requestBody)
+			_, contentType := multipartBody(t, tc.requestBody)
 
 			reqURL := appSrv.URL + unsubscribeEndpoint + tc.requestBody["token"]
 			ctx := context.Background()
-			req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, body)
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, http.NoBody)
 			require.NoError(t, err)
 
 			req.Header.Set("Content-Type", contentType)
@@ -84,7 +84,9 @@ func TestUnsubscribeAPI(t *testing.T) {
 			}()
 
 			assert.Equal(t, tc.expectedStatusCode, resp.StatusCode)
-			bodyBytes, _ := io.ReadAll(resp.Body)
+			bodyBytes, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+
 			log.Printf("response body: %s", string(bodyBytes))
 			if tc.expectedBody != "" {
 				require.True(t, json.Valid([]byte(tc.expectedBody)), "expectedBody is not valid JSON")

@@ -71,8 +71,6 @@ func (m *mockNotificationService) SendUnsubscribe(channel, recipient, city strin
 	return nil
 }
 
-func (m *mockNotificationService) SendMessage() error { return nil }
-
 func (m *mockNotificationService) Reset() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()

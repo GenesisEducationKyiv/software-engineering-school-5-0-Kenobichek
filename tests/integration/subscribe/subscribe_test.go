@@ -13,6 +13,10 @@ import (
 	"testing"
 )
 
+const (
+	subscribeEndpoint = "/api/subscribe"
+)
+
 func TestSubscribeAPI(t *testing.T) {
 	pg := testdb.New(t)
 	database := pg.SQL
@@ -69,7 +73,8 @@ func TestSubscribeAPI(t *testing.T) {
 
 			body, contentType := multipartBody(t, tc.requestBody)
 
-			reqURL := appSrv.URL + "/api/subscribe"
+			reqURL := appSrv.URL + subscribeEndpoint
+			log.Println("Request URL:", reqURL)
 			ctx := context.Background()
 			req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, body)
 			require.NoError(t, err)
@@ -87,7 +92,8 @@ func TestSubscribeAPI(t *testing.T) {
 			}()
 
 			assert.Equal(t, tc.expectedStatusCode, resp.StatusCode)
-			bodyBytes, _ := io.ReadAll(resp.Body)
+			bodyBytes, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
 
 			if tc.expectedBody != "" {
 				require.True(t, json.Valid([]byte(tc.expectedBody)), "expectedBody is not valid JSON")
