@@ -103,7 +103,6 @@ func newAppRouterWithDB(t *testing.T, db *sql.DB, notifSvc notificationManager) 
 }
 
 func TestSubscribeAPI(t *testing.T) {
-	// spin up an isolated Postgres for this test file
 	pg := testdb.New(t)
 	database := pg.SQL
 
@@ -122,7 +121,7 @@ func TestSubscribeAPI(t *testing.T) {
 				"frequency": "daily",
 			},
 			expectedStatusCode: http.StatusOK,
-			expectedBody:       `{"message":"Subscription successful. Confirmation sent."}`,
+			expectedBody:       `{"message":"` + subscribe.MsgSubscriptionSuccess + `"}`,
 			expectConfirmation: true,
 		},
 		{
@@ -132,7 +131,7 @@ func TestSubscribeAPI(t *testing.T) {
 				"frequency": "daily",
 			},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedBody:       `{"message":"invalid input"}`,
+			expectedBody:       `{"message":"` + subscribe.ErrInvalidInput.Error() + `"}`,
 			expectConfirmation: false,
 		},
 		{
@@ -142,7 +141,7 @@ func TestSubscribeAPI(t *testing.T) {
 				"city":      "Kyiv",
 				"frequency": "daily",
 			},
-			expectedBody:       `{"message":"Already subscribed or DB error"}`,
+			expectedBody:       `{"message":"` + subscribe.ErrAlreadySubscribed.Error() + `"}`,
 			expectedStatusCode: http.StatusConflict,
 			expectConfirmation: false,
 		},
