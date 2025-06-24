@@ -1,4 +1,4 @@
-package subscribe_test
+package confirm_test
 
 import (
 	"Weather-Forecast-API/internal/handlers/subscribe"
@@ -14,11 +14,11 @@ import (
 )
 
 const (
-	unsubscribeEndpoint = "/api/unsubscribe/"
-	validToken          = "3fa85f64-5717-4562-b3fc-2c963f66afa6" //nolint:gosec
+	confirmEndpoint = "/api/confirm/"
+	confirmToken    = "3fa85f64-5717-4562-b3fc-2c963f66afa6" //nolint:gosec
 )
 
-func TestUnsubscribeAPI(t *testing.T) {
+func TestConfirmAPI(t *testing.T) {
 	pg := testdb.New(t)
 	database := pg.SQL
 
@@ -26,24 +26,22 @@ func TestUnsubscribeAPI(t *testing.T) {
 		`INSERT INTO subscriptions (channel_value, city, token, 
 		frequency_minutes, channel_type, next_notified_at)
 		VALUES ($1, $2, $3, $4, $5, NOW())`, "test@example.com", "Kyiv",
-		validToken, 60, "email")
+		confirmToken, 60, "email")
 	require.NoError(t, err)
 
 	testCases := []struct {
 		name               string
 		requestBody        map[string]string
 		expectedStatusCode int
-		expectUnsubscribe  bool
 		expectedBody       string
 	}{
 		{
-			name: "Successful unsubscribe",
+			name: "Successful confirmation",
 			requestBody: map[string]string{
-				"token": validToken,
+				"token": confirmToken,
 			},
 			expectedStatusCode: http.StatusOK,
-			expectedBody:       `{"message":"` + subscribe.MsgUnsubscribedSuccess + `"}`,
-			expectUnsubscribe:  true,
+			expectedBody:       `{"message":"` + subscribe.MsgSubscriptionConfirmed + `"}`,
 		},
 		{
 			name: "Invalid token",
@@ -52,7 +50,6 @@ func TestUnsubscribeAPI(t *testing.T) {
 			},
 			expectedStatusCode: http.StatusConflict,
 			expectedBody:       `{"message":"` + subscribe.ErrTokenNotFound.Error() + `"}`,
-			expectUnsubscribe:  false,
 		},
 	}
 
@@ -67,7 +64,7 @@ func TestUnsubscribeAPI(t *testing.T) {
 
 			body, contentType := multipartBody(t, tc.requestBody)
 
-			reqURL := appSrv.URL + unsubscribeEndpoint + tc.requestBody["token"]
+			reqURL := appSrv.URL + confirmEndpoint + tc.requestBody["token"]
 			ctx := context.Background()
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, body)
 			require.NoError(t, err)
@@ -76,6 +73,7 @@ func TestUnsubscribeAPI(t *testing.T) {
 
 			resp, err := http.DefaultClient.Do(req)
 			require.NoError(t, err)
+
 			defer func() {
 				if err := resp.Body.Close(); err != nil {
 					log.Println("failed to close response body")
@@ -85,16 +83,11 @@ func TestUnsubscribeAPI(t *testing.T) {
 
 			assert.Equal(t, tc.expectedStatusCode, resp.StatusCode)
 			bodyBytes, _ := io.ReadAll(resp.Body)
-			log.Printf("response body: %s", string(bodyBytes))
+
 			if tc.expectedBody != "" {
 				require.True(t, json.Valid([]byte(tc.expectedBody)), "expectedBody is not valid JSON")
 				require.True(t, json.Valid(bodyBytes), "response body is not valid JSON")
 				assert.JSONEq(t, tc.expectedBody, string(bodyBytes), "response body mismatch")
-			}
-			if tc.expectUnsubscribe {
-				require.Len(t, mockNotif.sentUnsubscribes, 1, "expected unsubscribe notification to be sent")
-			} else {
-				require.Len(t, mockNotif.sentUnsubscribes, 0, "did not expect unsubscribe notification to be sent")
 			}
 		})
 	}

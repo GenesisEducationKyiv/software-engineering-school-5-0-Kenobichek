@@ -136,8 +136,10 @@ func (h *Handler) Confirm(writer http.ResponseWriter, request *http.Request) {
 
 	sub, err := h.subscriptionService.GetSubscriptionByToken(input.Token)
 	if err != nil {
-		if errors.Is(err, ErrTokenNotFound) || strings.Contains(err.Error(), "not found") {
-			response.RespondJSON(writer, http.StatusNotFound, ErrTokenNotFound.Error())
+		if strings.Contains(err.Error(), "invalid input syntax for type uuid") ||
+			errors.Is(err, ErrTokenNotFound) ||
+			strings.Contains(err.Error(), "not found") {
+			response.RespondJSON(writer, http.StatusConflict, ErrTokenNotFound.Error())
 		} else {
 			response.RespondJSON(writer, http.StatusConflict, err.Error())
 		}
