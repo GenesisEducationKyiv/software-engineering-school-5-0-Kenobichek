@@ -1,4 +1,4 @@
-package weather_test_test
+package weather_test
 
 import (
 	"Weather-Forecast-API/external/openweather"
