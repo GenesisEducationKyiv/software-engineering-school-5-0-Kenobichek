@@ -4,7 +4,6 @@ import (
 	"Weather-Forecast-API/internal/repository/subscriptions"
 	"Weather-Forecast-API/internal/response"
 	"errors"
-	"log"
 	"strings"
 
 	"github.com/google/uuid"
@@ -75,10 +74,8 @@ func (h *Handler) Subscribe(writer http.ResponseWriter, request *http.Request) {
 
 	if err := h.subscriptionService.Subscribe(sub); err != nil {
 		if errors.Is(err, ErrAlreadySubscribed) || strings.Contains(err.Error(), "already subscribed") {
-			log.Printf("Already subscribed: %v", err)
 			response.RespondJSON(writer, http.StatusConflict, ErrAlreadySubscribed.Error())
 		} else {
-			log.Printf("Failed to subscribe: %v", err)
 			response.RespondJSON(writer, http.StatusConflict, err.Error())
 		}
 		return
@@ -102,8 +99,10 @@ func (h *Handler) Unsubscribe(writer http.ResponseWriter, request *http.Request)
 
 	sub, err := h.subscriptionService.GetSubscriptionByToken(input.Token)
 	if err != nil {
-		if errors.Is(err, ErrTokenNotFound) || strings.Contains(err.Error(), "not found") {
-			response.RespondJSON(writer, http.StatusNotFound, ErrTokenNotFound.Error())
+		if strings.Contains(err.Error(), "invalid input syntax for type uuid") ||
+			errors.Is(err, ErrTokenNotFound) ||
+			strings.Contains(err.Error(), "not found") {
+			response.RespondJSON(writer, http.StatusConflict, ErrTokenNotFound.Error())
 		} else {
 			response.RespondJSON(writer, http.StatusConflict, err.Error())
 		}
@@ -125,7 +124,6 @@ func (h *Handler) Unsubscribe(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	log.Printf("Successfully unsubscribed user %s from city %s", sub.ChannelValue, sub.City)
 	response.RespondJSON(writer, http.StatusOK, MsgUnsubscribedSuccess)
 }
 
