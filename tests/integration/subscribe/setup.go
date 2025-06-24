@@ -22,8 +22,6 @@ type notificationManager interface {
 	SendUnsubscribe(channel string, recipient string, city string) error
 }
 
-var dbMutex sync.Mutex
-
 type mockNotificationService struct {
 	sentConfirmations []confirmationCall
 	sentUnsubscribes  []unsubscribeCall

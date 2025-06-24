@@ -59,8 +59,8 @@ func TestUnsubscribeAPI(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			dbMutex.Lock()
-			defer dbMutex.Unlock()
+			pg.DBMutex.Lock()
+			defer pg.DBMutex.Unlock()
 
 			mockNotif := newMockNotificationService()
 			appSrv := newTestServer(t, newAppRouterWithDB(t, database, mockNotif))

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -32,6 +33,7 @@ type PG struct {
 	SQL       *sql.DB
 	DSN       string
 	container testcontainers.Container
+	DBMutex   sync.Mutex
 }
 
 func New(t testing.TB) *PG {
