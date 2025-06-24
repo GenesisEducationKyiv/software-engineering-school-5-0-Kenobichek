@@ -6,10 +6,7 @@ import (
 	"Weather-Forecast-API/internal/repository/subscriptions"
 	"Weather-Forecast-API/internal/routes"
 	"Weather-Forecast-API/internal/services/subscription"
-	"bytes"
 	"database/sql"
-	"github.com/stretchr/testify/require"
-	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -98,18 +95,4 @@ func newTestServer(t *testing.T, h http.Handler) *httptest.Server {
 	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
 	return srv
-}
-
-func multipartBody(t *testing.T, fields map[string]string) (*bytes.Buffer, string) {
-	t.Helper()
-
-	var buf bytes.Buffer
-	writer := multipart.NewWriter(&buf)
-
-	for k, v := range fields {
-		require.NoError(t, writer.WriteField(k, v))
-	}
-
-	require.NoError(t, writer.Close())
-	return &buf, writer.FormDataContentType()
 }

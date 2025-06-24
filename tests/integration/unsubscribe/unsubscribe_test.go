@@ -83,7 +83,6 @@ func TestUnsubscribeAPI(t *testing.T) {
 			bodyBytes, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 
-			log.Printf("response body: %s", string(bodyBytes))
 			if tc.expectedBody != "" {
 				require.True(t, json.Valid([]byte(tc.expectedBody)), "expectedBody is not valid JSON")
 				require.True(t, json.Valid(bodyBytes), "response body is not valid JSON")
