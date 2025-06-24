@@ -62,14 +62,10 @@ func TestConfirmAPI(t *testing.T) {
 			mockNotif := newMockNotificationService()
 			appSrv := newTestServer(t, newAppRouterWithDB(t, database, mockNotif))
 
-			_, contentType := multipartBody(t, tc.requestBody)
-
 			reqURL := appSrv.URL + confirmEndpoint + tc.requestBody["token"]
 			ctx := context.Background()
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, http.NoBody)
 			require.NoError(t, err)
-
-			req.Header.Set("Content-Type", contentType)
 
 			resp, err := http.DefaultClient.Do(req)
 			require.NoError(t, err)
