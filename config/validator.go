@@ -54,5 +54,12 @@ func validate(config *Config) error {
 		return fmt.Errorf("config validation errors:\n- %s", strings.Join(errors, "\n- "))
 	}
 
+	if config.Weather.APIKey == "" {
+		errors = append(errors, "WEATHER_API_KEY is required")
+	}
+	if config.Weather.WeatherAPIURL == "" {
+		errors = append(errors, "WEATHER_API_URL is required")
+	}
+
 	return nil
 }
