@@ -46,7 +46,7 @@ func validate(config *Config) error {
 	}
 
 	if config.OpenWeather.WeatherAPIURL == "" {
-		errors = append(errors, "WEATHER_API_URL is required")
+		errors = append(errors, "OPENWEATHERMAP_API_URL is required")
 	}
 	if config.OpenWeather.GeocodingAPIURL == "" {
 		errors = append(errors, "GEOCODING_API_URL is required")
