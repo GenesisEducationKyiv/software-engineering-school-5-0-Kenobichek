@@ -38,11 +38,11 @@ func (c *ChainWeatherProvider) GetWeatherByCity(ctx context.Context, city string
 		return metrics, nil
 	}
 
-	log.Printf("OpenWeather provider failed: %v, trying next provider", err)
+	log.Printf("Weather provider failed: %v, trying next provider", err)
 
 	if c.next != nil {
 		return c.next.GetWeatherByCity(ctx, city)
 	}
 
-	return weather.Metrics{}, fmt.Errorf("OpenWeather provider failed and no fallback available: %w", err)
+	return weather.Metrics{}, fmt.Errorf("Weather provider failed and no fallback available: %w", err)
 }

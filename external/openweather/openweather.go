@@ -31,6 +31,7 @@ func (w *WeatherAPI) GetWeather(ctx context.Context, coords weather.Coordinates)
 	weatherURL := fmt.Sprintf("%s?lat=%f&lon=%f&appid=%s&units=metric",
 		w.apiurl, coords.Lat, coords.Lon, w.apikey)
 
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, weatherURL, http.NoBody)
 	if err != nil {
 		return weather.Metrics{}, fmt.Errorf("failed to create request: %w", err)
