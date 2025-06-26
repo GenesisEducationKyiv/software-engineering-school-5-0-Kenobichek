@@ -11,28 +11,25 @@ import (
 	"log"
 )
 
-var DataBase *sql.DB
-
 func Init(dsn string) (*sql.DB, error) {
 	log.Println("Trying to establish database connection.")
 
-	var err error
-	DataBase, err = sql.Open("postgres", dsn)
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database connection: %w", err)
 	}
 
-	if err := DataBase.Ping(); err != nil {
-		if closeErr := DataBase.Close(); closeErr != nil {
+	if err := db.Ping(); err != nil {
+		if closeErr := db.Close(); closeErr != nil {
 			return nil, fmt.Errorf("failed to close database: %w and failed to ping database: %v", closeErr, err)
 		}
-		DataBase = nil
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	log.Println("Database connection established successfully.")
-	return DataBase, nil
+	return db, nil
 }
+
 func RunMigrations(dbConn *sql.DB) error {
 	if dbConn == nil {
 		return fmt.Errorf("database connection (dbConn) is nil in RunMigrations")

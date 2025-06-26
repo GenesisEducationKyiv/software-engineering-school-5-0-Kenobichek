@@ -1,0 +1,42 @@
+name: ci-tests
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - 'main'
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    container:
+      image: golang:1.24-alpine
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run unit tests
+        run: go test -v -short ./...
+
+  integration:
+    runs-on: ubuntu-latest
+    container:
+      image: golang:1.24-alpine
+    needs: unit
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run integration tests
+        run: go test -v -tags=integration ./tests/integration/...
+
+  e2e:
+    runs-on: ubuntu-latest
+    container:
+      image: golang:1.24-alpine
+    needs: integration
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run E2E tests
+        run: go test -v -tags=e2e ./...

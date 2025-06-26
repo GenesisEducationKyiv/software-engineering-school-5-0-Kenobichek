@@ -52,6 +52,7 @@ func (wp *OpenWeatherProvider) GetWeatherByCity(ctx context.Context, city string
 		Temperature: openWeatherData.Temperature,
 		Humidity:    openWeatherData.Humidity,
 		Description: openWeatherData.Description,
+		City:        city,
 	}
 
 	return weatherData, nil

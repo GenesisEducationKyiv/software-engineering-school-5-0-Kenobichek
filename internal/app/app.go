@@ -3,6 +3,8 @@ package app
 import (
 	"Weather-Forecast-API/config"
 	"Weather-Forecast-API/internal/httpclient"
+	"Weather-Forecast-API/internal/repository/emailtemplates"
+	"Weather-Forecast-API/internal/repository/subscriptions"
 	"Weather-Forecast-API/internal/scheduler"
 	"Weather-Forecast-API/internal/services/notification"
 	"Weather-Forecast-API/internal/services/subscription"
@@ -39,10 +41,13 @@ func (a *App) Run() error {
 	httpClient := httpclient.New()
 	weatherProv := a.buildOpenWeatherProvider(httpClient)
 
-	subSvc := subscription.NewService()
-	notifSvc := notification.NewService(emailNotifier)
+	subsRepo := subscriptions.New(dbConn)
+	tmplsRepo := emailtemplates.New(dbConn)
 
-	taskScheduler := scheduler.NewScheduler(notifSvc, weatherProv, weatherHandlerTimeout)
+	subSvc := subscription.NewService(subsRepo)
+	notifSvc := notification.NewService(emailNotifier, tmplsRepo)
+
+	taskScheduler := scheduler.NewScheduler(notifSvc, subSvc, weatherProv, weatherHandlerTimeout)
 	errCh := make(chan error, 1)
 
 	a.runSchedulerAsync(taskScheduler, errCh)

@@ -8,7 +8,7 @@ import (
 	"Weather-Forecast-API/internal/handlers/subscribe"
 	"Weather-Forecast-API/internal/handlers/weather"
 	"Weather-Forecast-API/internal/notifier/sengridnotifier"
-	"Weather-Forecast-API/internal/repository"
+	"Weather-Forecast-API/internal/repository/subscriptions"
 	"Weather-Forecast-API/internal/routes"
 	"Weather-Forecast-API/internal/scheduler"
 	"Weather-Forecast-API/internal/weatherprovider/openweatherprovider"
@@ -78,13 +78,18 @@ func (a *App) buildOpenWeatherProvider(client *http.Client) *openweatherprovider
 }
 
 type subscriptionManager interface {
-	Subscribe(sub *repository.Subscription) error
-	Unsubscribe(sub *repository.Subscription) error
-	Confirm(sub *repository.Subscription) error
+	Subscribe(sub *subscriptions.Info) error
+	Unsubscribe(sub *subscriptions.Info) error
+	Confirm(sub *subscriptions.Info) error
+	GetSubscriptionByToken(token string) (*subscriptions.Info, error)
+	GetDueSubscriptions() []subscriptions.Info
+	UpdateNextNotification(id int, next time.Time) error
 }
 
 type notificationManager interface {
-	SendMessage(channelType string, channelValue string, message string, subject string) error
+	SendWeatherUpdate(channel string, recipient string, metrics weather.Metrics) error
+	SendConfirmation(channel string, recipient string, token string) error
+	SendUnsubscribe(channel string, recipient string, city string) error
 }
 
 type weatherProviderManager interface {
