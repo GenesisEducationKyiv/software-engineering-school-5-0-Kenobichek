@@ -1,8 +1,4 @@
-<<<<<<<< HEAD:internal/repository/dto.go
-package repository
-========
 package subscriptions
->>>>>>>> origin/main:internal/repository/subscriptions/dto.go
 
 import "time"
 
