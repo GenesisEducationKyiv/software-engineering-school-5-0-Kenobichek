@@ -34,7 +34,11 @@ func (w *WeatherAPIProvider) GetWeather(ctx context.Context, city string) (weath
 	if err != nil {
 		return weather.Metrics{}, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			return
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return weather.Metrics{}, fmt.Errorf("API returned status code: %d", resp.StatusCode)

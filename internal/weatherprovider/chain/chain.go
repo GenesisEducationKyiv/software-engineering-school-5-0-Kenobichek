@@ -7,6 +7,8 @@ import (
 	"log"
 )
 
+var ErrNoFallback = "weather provider failed and no fallback available"
+
 type weatherProvider interface {
 	GetWeatherByCity(ctx context.Context, city string) (weather.Metrics, error)
 }
@@ -24,7 +26,6 @@ type ChainWeatherProvider struct {
 func (c *ChainWeatherProvider) SetNext(next weatherChainHandler) {
 	c.next = next
 }
-
 
 func NewChainOpenWeatherProvider(provider weatherProvider) *ChainWeatherProvider {
 	return &ChainWeatherProvider{
@@ -44,5 +45,5 @@ func (c *ChainWeatherProvider) GetWeatherByCity(ctx context.Context, city string
 		return c.next.GetWeatherByCity(ctx, city)
 	}
 
-	return weather.Metrics{}, fmt.Errorf("Weather provider failed and no fallback available: %w", err)
+	return weather.Metrics{}, fmt.Errorf("%s: %w", ErrNoFallback, err)
 }

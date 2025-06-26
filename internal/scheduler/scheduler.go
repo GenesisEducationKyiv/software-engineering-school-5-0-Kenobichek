@@ -15,10 +15,6 @@ type notificationManager interface {
 	SendWeatherUpdate(channel string, recipient string, metrics weather.Metrics) error
 }
 
-type weatherProviderManager interface {
-	GetWeatherByCity(ctx context.Context, city string) (weather.Metrics, error)
-}
-
 type clockManager interface {
 	Now() time.Time
 }
