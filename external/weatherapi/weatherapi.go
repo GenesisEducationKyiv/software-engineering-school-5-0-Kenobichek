@@ -1,35 +1,30 @@
-package openweather
+package weatherapi
 
 import (
 	"Weather-Forecast-API/internal/handlers/weather"
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
+	"net/url"
 )
 
-type WeatherAPI struct {
+type WeatherAPIProvider struct {
 	httpClient *http.Client
 	apiurl     string
 	apikey     string
 }
 
-func NewOpenWeatherAPI(
-	httpClient *http.Client,
-	apiurl string,
-	apikey string,
-) *WeatherAPI {
-	return &WeatherAPI{
+func NewWeatherAPIProvider(httpClient *http.Client, apiurl, apikey string) *WeatherAPIProvider {
+	return &WeatherAPIProvider{
 		httpClient: httpClient,
 		apiurl:     apiurl,
 		apikey:     apikey,
 	}
 }
 
-func (w *WeatherAPI) GetWeather(ctx context.Context, coords weather.Coordinates) (weather.Metrics, error) {
-	weatherURL := fmt.Sprintf("%s?lat=%f&lon=%f&appid=%s&units=metric",
-		w.apiurl, coords.Lat, coords.Lon, w.apikey)
+func (w *WeatherAPIProvider) GetWeather(ctx context.Context, city string) (weather.Metrics, error) {
+	weatherURL := fmt.Sprintf("%s?key=%s&q=%s", w.apiurl, w.apikey, url.QueryEscape(city))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, weatherURL, http.NoBody)
 	if err != nil {
@@ -42,7 +37,6 @@ func (w *WeatherAPI) GetWeather(ctx context.Context, coords weather.Coordinates)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			log.Println("failed to close response body")
 			return
 		}
 	}()
@@ -52,28 +46,26 @@ func (w *WeatherAPI) GetWeather(ctx context.Context, coords weather.Coordinates)
 	}
 
 	var data struct {
-		Main struct {
-			Temperature float64 `json:"temp"`
-			Humidity    float64 `json:"humidity"`
-		} `json:"main"`
-		Weather []struct {
-			Description string `json:"description"`
-		} `json:"weather"`
+		Location struct {
+			Name string `json:"name"`
+		} `json:"location"`
+		Current struct {
+			TempC     float64 `json:"temp_c"`
+			Humidity  float64 `json:"humidity"`
+			Condition struct {
+				Text string `json:"text"`
+			} `json:"condition"`
+		} `json:"current"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return weather.Metrics{}, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	if len(data.Weather) == 0 {
-		return weather.Metrics{}, fmt.Errorf("no weather data available")
-	}
-
-	weatherData := weather.Metrics{
-		Temperature: data.Main.Temperature,
-		Humidity:    data.Main.Humidity,
-		Description: data.Weather[0].Description,
-	}
-
-	return weatherData, nil
+	return weather.Metrics{
+		Temperature: data.Current.TempC,
+		Humidity:    data.Current.Humidity,
+		Description: data.Current.Condition.Text,
+		City:        data.Location.Name,
+	}, nil
 }

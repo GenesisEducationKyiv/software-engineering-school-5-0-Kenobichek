@@ -5,6 +5,7 @@ type Config struct {
 	Database    DatabaseConfig
 	SendGrid    SendGridConfig
 	OpenWeather OpenWeatherConfig
+	Weather     WeatherConfig
 }
 
 type ServerConfig struct {
@@ -28,5 +29,10 @@ type SendGridConfig struct {
 type OpenWeatherConfig struct {
 	APIKey          string `envconfig:"OPENWEATHERMAP_API_KEY" required:"true"`
 	GeocodingAPIURL string `envconfig:"GEOCODING_API_URL" required:"true"`
-	WeatherAPIURL   string `envconfig:"WEATHER_API_URL" required:"true"`
+	WeatherAPIURL   string `envconfig:"OPENWEATHERMAP_API_URL" required:"true"`
+}
+
+type WeatherConfig struct {
+	APIKey        string `envconfig:"WEATHER_API_KEY" required:"true"`
+	WeatherAPIURL string `envconfig:"WEATHER_API_URL" required:"true"`
 }

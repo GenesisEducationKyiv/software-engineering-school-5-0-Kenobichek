@@ -4,6 +4,7 @@ import (
 	"Weather-Forecast-API/config"
 	"Weather-Forecast-API/external/openweather"
 	"Weather-Forecast-API/external/sendgridemailapi"
+	"Weather-Forecast-API/external/weatherapi"
 	"Weather-Forecast-API/internal/db"
 	"Weather-Forecast-API/internal/handlers/subscribe"
 	"Weather-Forecast-API/internal/handlers/weather"
@@ -11,12 +12,15 @@ import (
 	"Weather-Forecast-API/internal/repository/subscriptions"
 	"Weather-Forecast-API/internal/routes"
 	"Weather-Forecast-API/internal/scheduler"
+	"Weather-Forecast-API/internal/weatherprovider/chain"
 	"Weather-Forecast-API/internal/weatherprovider/openweatherprovider"
+	"Weather-Forecast-API/internal/weatherprovider/weatherapiprovider"
 	"context"
 	"database/sql"
-	"github.com/sendgrid/sendgrid-go"
 	"net/http"
 	"time"
+
+	"github.com/sendgrid/sendgrid-go"
 )
 
 const (
@@ -74,7 +78,20 @@ func (a *App) buildOpenWeatherProvider(client *http.Client) *openweatherprovider
 		owCfg.WeatherAPIURL,
 		owCfg.APIKey,
 	)
+
 	return openweatherprovider.NewOpenWeatherProvider(geoSvc, owAPI)
+}
+
+func (a *App) buildWeatherAPIProvider(client *http.Client) *weatherapiprovider.WeatherAPIProvider {
+	weatherCfg := a.config.Weather
+
+	weatherAPI := weatherapi.NewWeatherAPIProvider(
+		client,
+		weatherCfg.WeatherAPIURL,
+		weatherCfg.APIKey,
+	)
+
+	return weatherapiprovider.NewWeatherAPIProvider(weatherAPI)
 }
 
 type subscriptionManager interface {
@@ -92,12 +109,12 @@ type notificationManager interface {
 	SendUnsubscribe(channel string, recipient string, city string) error
 }
 
-type weatherProviderManager interface {
+type weatherChainHandler interface {
 	GetWeatherByCity(ctx context.Context, city string) (weather.Metrics, error)
 }
 
 func (a *App) buildRouter(
-	weatherProv weatherProviderManager,
+	weatherProv weatherChainHandler,
 	subSvc subscriptionManager,
 	notifSvc notificationManager,
 ) http.Handler {
@@ -140,4 +157,16 @@ func (a *App) runSchedulerAsync(s *scheduler.Scheduler, errCh chan<- error) {
 			errCh <- err
 		}
 	}()
+}
+
+func (a *App) buildWeatherProviderChain(client *http.Client) *chain.ChainWeatherProvider {
+	openWeatherProvider := a.buildOpenWeatherProvider(client)
+	weatherAPIProvider := a.buildWeatherAPIProvider(client)
+
+	openweatherChain := chain.NewChainWeatherProvider(openWeatherProvider)
+	weatherapiChain := chain.NewChainWeatherProvider(weatherAPIProvider)
+
+	weatherapiChain.SetNext(openweatherChain)
+
+	return weatherapiChain
 }

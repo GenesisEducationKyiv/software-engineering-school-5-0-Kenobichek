@@ -15,10 +15,6 @@ type notificationManager interface {
 	SendWeatherUpdate(channel string, recipient string, metrics weather.Metrics) error
 }
 
-type weatherProviderManager interface {
-	GetWeatherByCity(ctx context.Context, city string) (weather.Metrics, error)
-}
-
 type clockManager interface {
 	Now() time.Time
 }
@@ -32,7 +28,7 @@ type subscriptionManager interface {
 type Scheduler struct {
 	notifService    notificationManager
 	subService      subscriptionManager
-	weatherProvider weatherProviderManager
+	weatherProvChain weatherChainHandler
 	clock           clockManager
 	requestTimeout  time.Duration
 }
@@ -43,16 +39,20 @@ func (r realClock) Now() time.Time {
 	return time.Now()
 }
 
+type weatherChainHandler interface {
+	GetWeatherByCity(ctx context.Context, city string) (weather.Metrics, error)
+}
+
 func NewScheduler(
 	notifService notificationManager,
 	subService subscriptionManager,
-	weatherProvider weatherProviderManager,
+	weatherProvChain weatherChainHandler,
 	requestTimeout time.Duration,
 ) *Scheduler {
 	return &Scheduler{
 		notifService:    notifService,
 		subService:      subService,
-		weatherProvider: weatherProvider,
+		weatherProvChain: weatherProvChain,
 		clock:           realClock{},
 		requestTimeout:  requestTimeout,
 	}
@@ -75,7 +75,7 @@ func (s *Scheduler) Start() (*cron.Cron, error) {
 		for _, sub := range subs {
 			log.Printf("[Scheduler] Processing subscription %d for city %s\n", sub.ID, sub.City)
 
-			weatherData, err := s.weatherProvider.GetWeatherByCity(ctx, sub.City)
+			weatherData, err := s.weatherProvChain.GetWeatherByCity(ctx, sub.City)
 			if err != nil {
 				log.Printf("[Scheduler] Error fetching weather for %s: %v\n", sub.City, err)
 				continue

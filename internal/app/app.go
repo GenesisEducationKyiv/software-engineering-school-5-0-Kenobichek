@@ -39,20 +39,20 @@ func (a *App) Run() error {
 
 	emailNotifier := a.buildSendGridEmailNotifier()
 	httpClient := httpclient.New()
-	weatherProv := a.buildOpenWeatherProvider(httpClient)
+	weatherProvChain := a.buildWeatherProviderChain(httpClient)
 
 	subsRepo := subscriptions.New(dbConn)
 	tmplsRepo := emailtemplates.New(dbConn)
 
 	subSvc := subscription.NewService(subsRepo)
 	notifSvc := notification.NewService(emailNotifier, tmplsRepo)
-
-	taskScheduler := scheduler.NewScheduler(notifSvc, subSvc, weatherProv, weatherHandlerTimeout)
+	
+	taskScheduler := scheduler.NewScheduler(notifSvc, subSvc, weatherProvChain, weatherHandlerTimeout)
 	errCh := make(chan error, 1)
 
 	a.runSchedulerAsync(taskScheduler, errCh)
 
-	router := a.buildRouter(weatherProv, subSvc, notifSvc)
+	router := a.buildRouter(weatherProvChain, subSvc, notifSvc)
 
 	server := a.newHTTPServer(router)
 
