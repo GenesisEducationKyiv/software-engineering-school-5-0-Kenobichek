@@ -1,6 +1,7 @@
-package shutdown
+package shutdown_test
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"os/exec"
@@ -35,11 +36,21 @@ func TestGracefulShutdown(t *testing.T) {
 	time.Sleep(2 * time.Second)
 
 	// Test that the server is responding
-	resp, err := http.Get("http://localhost:8081/health")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost:8081/health", nil)
 	if err != nil {
-		t.Logf("Health check failed (expected if no health endpoint): %v", err)
+		t.Logf("Failed to create request: %v", err)
 	} else {
-		resp.Body.Close()
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Logf("Health check failed (expected if no health endpoint): %v", err)
+		} else {
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				t.Logf("Failed to close response body: %v", closeErr)
+			}
+		}
 	}
 
 	// Send SIGTERM signal
@@ -60,7 +71,9 @@ func TestGracefulShutdown(t *testing.T) {
 		}
 	case <-time.After(10 * time.Second):
 		t.Fatal("Application did not shutdown within 10 seconds")
-		cmd.Process.Kill() // Force kill if needed
+		if killErr := cmd.Process.Kill(); killErr != nil {
+			t.Logf("Failed to force kill process: %v", killErr)
+		}
 	}
 
 	t.Log("Graceful shutdown test completed")
@@ -104,7 +117,9 @@ func TestGracefulShutdownWithTimeout(t *testing.T) {
 		t.Logf("Process exited: %v", err)
 	case <-time.After(5 * time.Second):
 		t.Fatal("Application did not shutdown within 5 seconds")
-		cmd.Process.Kill()
+		if killErr := cmd.Process.Kill(); killErr != nil {
+			t.Logf("Failed to force kill process: %v", killErr)
+		}
 	}
 
 	t.Log("Timeout shutdown test completed")
