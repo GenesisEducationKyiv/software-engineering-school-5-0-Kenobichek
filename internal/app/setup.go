@@ -163,10 +163,9 @@ func (a *App) buildWeatherProviderChain(client *http.Client) *chain.ChainWeather
 	openWeatherProvider := a.buildOpenWeatherProvider(client)
 	weatherAPIProvider := a.buildWeatherAPIProvider(client)
 
-	openweatherChain := chain.NewChainOpenWeatherProvider(openWeatherProvider)
-	weatherapiChain := chain.NewChainOpenWeatherProvider(weatherAPIProvider)
+	openweatherChain := chain.NewChainWeatherProvider(openWeatherProvider)
+	weatherapiChain := chain.NewChainWeatherProvider(weatherAPIProvider)
 
-	// openweatherChain.SetNext(weatherapiChain)
 	weatherapiChain.SetNext(openweatherChain)
 
 	return weatherapiChain

@@ -3,11 +3,12 @@ package chain
 import (
 	"Weather-Forecast-API/internal/handlers/weather"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 )
 
-var ErrNoFallback = "weather provider failed and no fallback available"
+var ErrNoFallback = errors.New("weather provider failed and no fallback available")
 
 type weatherProvider interface {
 	GetWeatherByCity(ctx context.Context, city string) (weather.Metrics, error)
@@ -27,7 +28,7 @@ func (c *ChainWeatherProvider) SetNext(next weatherChainHandler) {
 	c.next = next
 }
 
-func NewChainOpenWeatherProvider(provider weatherProvider) *ChainWeatherProvider {
+func NewChainWeatherProvider(provider weatherProvider) *ChainWeatherProvider {
 	return &ChainWeatherProvider{
 		provider: provider,
 	}

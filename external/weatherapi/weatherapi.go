@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 type WeatherAPIProvider struct {
@@ -23,7 +24,7 @@ func NewWeatherAPIProvider(httpClient *http.Client, apiurl, apikey string) *Weat
 }
 
 func (w *WeatherAPIProvider) GetWeather(ctx context.Context, city string) (weather.Metrics, error) {
-	weatherURL := fmt.Sprintf("%s?key=%s&q=%s", w.apiurl, w.apikey, city)
+	weatherURL := fmt.Sprintf("%s?key=%s&q=%s", w.apiurl, w.apikey, url.QueryEscape(city))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, weatherURL, http.NoBody)
 	if err != nil {
