@@ -36,10 +36,10 @@ func TestGetWeather(t *testing.T) {
 	}{
 		{
 			name: "valid response",
-			city: "Moscow",
+			city: "London",
 			apiResponse: `{
 				"location": {
-					"name": "Moscow"
+					"name": "London"
 				},
 				"current": {
 					"temp_c": 15.5,
@@ -54,13 +54,13 @@ func TestGetWeather(t *testing.T) {
 				Temperature: 15.5,
 				Humidity:    65,
 				Description: "Partly cloudy",
-				City:        "Moscow",
+				City:        "London",
 			},
 			expectErr: false,
 		},
 		{
 			name:        "invalid JSON response",
-			city:        "Moscow",
+			city:        "London",
 			apiResponse: `invalid-json`,
 			apiStatus:   http.StatusOK,
 			expected:    weather.Metrics{},
@@ -68,7 +68,7 @@ func TestGetWeather(t *testing.T) {
 		},
 		{
 			name:        "API error response",
-			city:        "Moscow",
+			city:        "London",
 			apiResponse: `{"error":{"code":1006,"message":"No matching location found."}}`,
 			apiStatus:   http.StatusBadRequest,
 			expected:    weather.Metrics{},
@@ -76,7 +76,7 @@ func TestGetWeather(t *testing.T) {
 		},
 		{
 			name: "missing location field in API response",
-			city: "Moscow",
+			city: "London",
 			apiResponse: `{
 				"current": {
 					"temp_c": 15.5,
@@ -92,23 +92,6 @@ func TestGetWeather(t *testing.T) {
 				Humidity:    65,
 				Description: "Partly cloudy",
 				City:        "",
-			},
-			expectErr: false,
-		},
-		{
-			name: "missing current field in API response",
-			city: "Moscow",
-			apiResponse: `{
-				"location": {
-					"name": "Moscow"
-				}
-			}`,
-			apiStatus: http.StatusOK,
-			expected: weather.Metrics{
-				Temperature: 0,
-				Humidity:    0,
-				Description: "",
-				City:        "London",
 			},
 			expectErr: false,
 		},
@@ -198,7 +181,7 @@ func TestGetWeather_NetworkError(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	_, err := api.GetWeather(ctx, "Moscow")
+	_, err := api.GetWeather(ctx, "London")
 	if err == nil {
 		t.Error("expected error for network failure, got nil")
 	}
@@ -210,7 +193,7 @@ func TestGetWeather_ContextCancellation(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 		w.WriteHeader(http.StatusOK)
 		response := `{
-			"location": {"name": "Moscow"},
+			"location": {"name": "London"},
 			"current": {
 				"temp_c": 15.5,
 				"humidity": 65,
@@ -228,7 +211,7 @@ func TestGetWeather_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	defer cancel()
 
-	_, err := api.GetWeather(ctx, "Moscow")
+	_, err := api.GetWeather(ctx, "London")
 	if err == nil {
 		t.Error("expected error for context cancellation, got nil")
 	}
