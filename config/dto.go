@@ -1,5 +1,7 @@
 package config
 
+import "time"
+
 type Config struct {
 	Server      ServerConfig
 	Database    DatabaseConfig
@@ -9,7 +11,8 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Port int `envconfig:"PORT" required:"true" default:"8080"`
+	Port                    int           `envconfig:"PORT" required:"true" default:"8080"`
+	GracefulShutdownTimeout time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT" default:"30s"`
 }
 
 type DatabaseConfig struct {

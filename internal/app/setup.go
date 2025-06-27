@@ -11,7 +11,6 @@ import (
 	"Weather-Forecast-API/internal/notifier/sengridnotifier"
 	"Weather-Forecast-API/internal/repository/subscriptions"
 	"Weather-Forecast-API/internal/routes"
-	"Weather-Forecast-API/internal/scheduler"
 	"Weather-Forecast-API/internal/weatherprovider/chain"
 	"Weather-Forecast-API/internal/weatherprovider/openweatherprovider"
 	"Weather-Forecast-API/internal/weatherprovider/weatherapiprovider"
@@ -149,14 +148,6 @@ func (a *App) newHTTPServer(handler http.Handler) *http.Server {
 		WriteTimeout: writeTimeout,
 		IdleTimeout:  idleTimeout,
 	}
-}
-
-func (a *App) runSchedulerAsync(s *scheduler.Scheduler, errCh chan<- error) {
-	go func() {
-		if _, err := s.Start(); err != nil {
-			errCh <- err
-		}
-	}()
 }
 
 func (a *App) buildWeatherProviderChain(client *http.Client) *chain.ChainWeatherProvider {

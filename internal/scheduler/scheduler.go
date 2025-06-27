@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/robfig/cron/v3"
@@ -26,11 +27,13 @@ type subscriptionManager interface {
 }
 
 type Scheduler struct {
-	notifService    notificationManager
-	subService      subscriptionManager
+	notifService     notificationManager
+	subService       subscriptionManager
 	weatherProvChain weatherChainHandler
-	clock           clockManager
-	requestTimeout  time.Duration
+	clock            clockManager
+	requestTimeout   time.Duration
+	cronScheduler    *cron.Cron
+	mu               sync.Mutex
 }
 
 type realClock struct{}
@@ -50,20 +53,23 @@ func NewScheduler(
 	requestTimeout time.Duration,
 ) *Scheduler {
 	return &Scheduler{
-		notifService:    notifService,
-		subService:      subService,
+		notifService:     notifService,
+		subService:       subService,
 		weatherProvChain: weatherProvChain,
-		clock:           realClock{},
-		requestTimeout:  requestTimeout,
+		clock:            realClock{},
+		requestTimeout:   requestTimeout,
 	}
 }
 
 func (s *Scheduler) Start() (*cron.Cron, error) {
 	log.Println("[Scheduler] Starting scheduler...")
 
-	cronScheduler := cron.New()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	_, err := cronScheduler.AddFunc("@every 1m", func() {
+	s.cronScheduler = cron.New()
+
+	_, err := s.cronScheduler.AddFunc("@every 1m", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
 		defer cancel()
 
@@ -103,8 +109,22 @@ func (s *Scheduler) Start() (*cron.Cron, error) {
 		return nil, fmt.Errorf("[Scheduler] Failed to add cron job: %v", err)
 	}
 
-	cronScheduler.Start()
+	s.cronScheduler.Start()
 	log.Println("[Scheduler] Started successfully")
 
-	return cronScheduler, nil
+	return s.cronScheduler, nil
+}
+
+func (s *Scheduler) Stop() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.cronScheduler != nil {
+		log.Println("[Scheduler] Stopping scheduler...")
+		ctx := s.cronScheduler.Stop()
+		<-ctx.Done()
+		log.Println("[Scheduler] Stopped successfully")
+	}
+
+	return nil
 }
