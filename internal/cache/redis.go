@@ -10,6 +10,10 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+const (
+	RedisConnectionTimeout = 5 * time.Second
+)
+
 type redisClientManager interface {
 	Get(ctx context.Context, key string) *redis.StringCmd
 	Set(ctx context.Context, key string, value interface{}, ttl time.Duration) *redis.StatusCmd
@@ -30,7 +34,7 @@ func NewRedisCache(addr string, password string, db int, ttl time.Duration) (*Re
 		DB:       db,
 	})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), RedisConnectionTimeout)
 	defer cancel()
 
 	if err := client.Ping(ctx).Err(); err != nil {
