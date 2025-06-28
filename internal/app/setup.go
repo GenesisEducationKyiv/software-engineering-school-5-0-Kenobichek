@@ -5,17 +5,20 @@ import (
 	"Weather-Forecast-API/external/openweather"
 	"Weather-Forecast-API/external/sendgridemailapi"
 	"Weather-Forecast-API/external/weatherapi"
+	"Weather-Forecast-API/internal/cache"
 	"Weather-Forecast-API/internal/db"
 	"Weather-Forecast-API/internal/handlers/subscribe"
 	"Weather-Forecast-API/internal/handlers/weather"
 	"Weather-Forecast-API/internal/notifier/sengridnotifier"
 	"Weather-Forecast-API/internal/repository/subscriptions"
 	"Weather-Forecast-API/internal/routes"
+	"Weather-Forecast-API/internal/weatherprovider/cached"
 	"Weather-Forecast-API/internal/weatherprovider/chain"
 	"Weather-Forecast-API/internal/weatherprovider/openweatherprovider"
 	"Weather-Forecast-API/internal/weatherprovider/weatherapiprovider"
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -93,6 +96,13 @@ func (a *App) buildWeatherAPIProvider(client *http.Client) *weatherapiprovider.W
 	return weatherapiprovider.NewWeatherAPIProvider(weatherAPI)
 }
 
+func (a *App) buildRedisCache() (*cache.RedisCache, error) {
+	redisCfg := a.config.Redis
+	addr := fmt.Sprintf("%s:%d", redisCfg.Host, redisCfg.Port)
+
+	return cache.NewRedisCache(addr, redisCfg.Password, redisCfg.DB, redisCfg.TTL)
+}
+
 type subscriptionManager interface {
 	Subscribe(sub *subscriptions.Info) error
 	Unsubscribe(sub *subscriptions.Info) error
@@ -150,14 +160,20 @@ func (a *App) newHTTPServer(handler http.Handler) *http.Server {
 	}
 }
 
-func (a *App) buildWeatherProviderChain(client *http.Client) *chain.ChainWeatherProvider {
+func (a *App) buildWeatherProviderChain(client *http.Client) (*cached.CachedWeatherProvider, error) {
+	redisCache, err := a.buildRedisCache()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build Redis cache: %w", err)
+	}
+
 	openWeatherProvider := a.buildOpenWeatherProvider(client)
 	weatherAPIProvider := a.buildWeatherAPIProvider(client)
 
 	openweatherChain := chain.NewChainWeatherProvider(openWeatherProvider)
 	weatherapiChain := chain.NewChainWeatherProvider(weatherAPIProvider)
-
 	weatherapiChain.SetNext(openweatherChain)
 
-	return weatherapiChain
+	cachedProvider := cached.NewCachedWeatherProvider(weatherapiChain, redisCache)
+
+	return cachedProvider, nil
 }
