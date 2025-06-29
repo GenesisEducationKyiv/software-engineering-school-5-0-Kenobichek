@@ -14,6 +14,24 @@ docker-compose up --build      # compiles the project and starts required servic
 
 ---
 
+### Monitoring Setup
+
+The project includes Redis monitoring with Prometheus and Grafana.
+
+#### Quick Start
+
+```shell script
+# Start monitoring stack
+docker-compose up -d redis redis-exporter prometheus grafana
+
+# Test the setup
+./monitoring/test-redis-metrics.sh
+```
+
+For detailed monitoring documentation, see [ADR 003: Redis Monitoring Setup](docs/adr/003-redis-monitoring-setup.md).
+
+---
+
 ### Running Tests
 
 Prerequisites: Go ≥ 1.21 installed.

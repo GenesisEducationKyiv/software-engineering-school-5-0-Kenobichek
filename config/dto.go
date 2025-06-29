@@ -8,6 +8,7 @@ type Config struct {
 	SendGrid    SendGridConfig
 	OpenWeather OpenWeatherConfig
 	Weather     WeatherConfig
+	Redis       RedisConfig
 }
 
 type ServerConfig struct {
@@ -38,4 +39,12 @@ type OpenWeatherConfig struct {
 type WeatherConfig struct {
 	APIKey        string `envconfig:"WEATHER_API_KEY" required:"true"`
 	WeatherAPIURL string `envconfig:"WEATHER_API_URL" required:"true"`
+}
+
+type RedisConfig struct {
+	Host     string        `envconfig:"REDIS_HOST" required:"true" default:"localhost"`
+	Port     int           `envconfig:"REDIS_PORT" required:"true" default:"6379"`
+	Password string        `envconfig:"REDIS_PASSWORD"`
+	DB       int           `envconfig:"REDIS_DB" default:"0"`
+	TTL      time.Duration `envconfig:"REDIS_CACHE_TTL" default:"10m"`
 }
