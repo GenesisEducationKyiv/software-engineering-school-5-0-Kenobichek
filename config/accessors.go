@@ -25,3 +25,10 @@ func (c *Config) GetPostgresDSN() string {
 		c.Database.Name,
 	)
 }
+
+func (c *Config) GetRedisDSN() string {
+	if c.Redis.Password != "" {
+		return fmt.Sprintf("redis://:%s@%s:%d/%d", c.Redis.Password, c.Redis.Host, c.Redis.Port, c.Redis.DB)
+	}
+	return fmt.Sprintf("redis://%s:%d/%d", c.Redis.Host, c.Redis.Port, c.Redis.DB)
+}

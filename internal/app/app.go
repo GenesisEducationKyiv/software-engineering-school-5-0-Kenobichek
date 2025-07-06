@@ -43,7 +43,11 @@ func (a *App) Run() error {
 
 	emailNotifier := a.buildSendGridEmailNotifier()
 	httpClient := httpclient.New()
-	weatherProvChain := a.buildWeatherProviderChain(httpClient)
+
+	weatherProvChain, err := a.buildWeatherProviderChain(httpClient)
+	if err != nil {
+		return err
+	}
 
 	subsRepo := subscriptions.New(dbConn)
 	tmplsRepo := emailtemplates.New(dbConn)
