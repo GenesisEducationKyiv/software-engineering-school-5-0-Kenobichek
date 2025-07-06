@@ -67,6 +67,10 @@ func (r *RedisCache) Get(ctx context.Context, city string) (*weather.Metrics, er
 }
 
 func (r *RedisCache) Set(ctx context.Context, city string, metrics weather.Metrics) error {
+	return r.SetWithTTL(ctx, city, metrics, r.ttl)
+}
+
+func (r *RedisCache) SetWithTTL(ctx context.Context, city string, metrics weather.Metrics, ttl time.Duration) error {
 	key := r.buildKey(city)
 
 	data, err := json.Marshal(metrics)
@@ -74,7 +78,32 @@ func (r *RedisCache) Set(ctx context.Context, city string, metrics weather.Metri
 		return fmt.Errorf("failed to marshal metrics: %w", err)
 	}
 
-	if err := r.client.Set(ctx, key, data, r.ttl).Err(); err != nil {
+	if err := r.client.Set(ctx, key, data, ttl).Err(); err != nil {
+		return fmt.Errorf("failed to set cache: %w", err)
+	}
+
+	return nil
+}
+
+func (r *RedisCache) SetWithExpiration(
+	ctx context.Context,
+	city string,
+	metrics weather.Metrics,
+	expiration time.Time,
+) error {
+	key := r.buildKey(city)
+
+	data, err := json.Marshal(metrics)
+	if err != nil {
+		return fmt.Errorf("failed to marshal metrics: %w", err)
+	}
+
+	ttl := time.Until(expiration)
+	if ttl <= 0 {
+		return fmt.Errorf("expiration time must be in the future")
+	}
+
+	if err := r.client.Set(ctx, key, data, ttl).Err(); err != nil {
 		return fmt.Errorf("failed to set cache: %w", err)
 	}
 
@@ -97,4 +126,8 @@ func (r *RedisCache) Close() error {
 
 func (r *RedisCache) buildKey(city string) string {
 	return fmt.Sprintf("weather:%s", city)
+}
+
+func (r *RedisCache) GetDefaultTTL() time.Duration {
+	return r.ttl
 }
