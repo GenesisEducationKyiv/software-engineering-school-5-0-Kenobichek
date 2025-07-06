@@ -142,3 +142,129 @@ func TestRedisCache_TTL(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, cachedMetrics)
 }
+
+func TestRedisCache_SetWithTTL(t *testing.T) {
+	// Skip if Redis is not available
+	redisCache, err := cache.NewRedisCache("localhost:6379", "", 0, 10*time.Minute)
+	if err != nil {
+		t.Skip("Redis not available, skipping test")
+	}
+	defer func() {
+		if err := redisCache.Close(); err != nil {
+			t.Logf("Failed to close Redis cache: %v", err)
+		}
+	}()
+
+	ctx := context.Background()
+	city := "Berlin"
+	metrics := weather.Metrics{
+		Temperature: 15.0,
+		Humidity:    75.0,
+		Description: "Cloudy",
+		City:        city,
+	}
+
+	// Set data with custom short TTL
+	customTTL := 50 * time.Millisecond
+	err = redisCache.SetWithTTL(ctx, city, metrics, customTTL)
+	require.NoError(t, err)
+
+	// Verify it exists immediately
+	cachedMetrics, err := redisCache.Get(ctx, city)
+	require.NoError(t, err)
+	require.NotNil(t, cachedMetrics)
+
+	// Wait for custom TTL to expire
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify it's expired
+	cachedMetrics, err = redisCache.Get(ctx, city)
+	require.NoError(t, err)
+	assert.Nil(t, cachedMetrics)
+}
+
+func TestRedisCache_SetWithExpiration(t *testing.T) {
+	// Skip if Redis is not available
+	redisCache, err := cache.NewRedisCache("localhost:6379", "", 0, 10*time.Minute)
+	if err != nil {
+		t.Skip("Redis not available, skipping test")
+	}
+	defer func() {
+		if err := redisCache.Close(); err != nil {
+			t.Logf("Failed to close Redis cache: %v", err)
+		}
+	}()
+
+	ctx := context.Background()
+	city := "Moscow"
+	metrics := weather.Metrics{
+		Temperature: -5.0,
+		Humidity:    85.0,
+		Description: "Snowy",
+		City:        city,
+	}
+
+	// Set data with absolute expiration time
+	expiration := time.Now().Add(50 * time.Millisecond)
+	err = redisCache.SetWithExpiration(ctx, city, metrics, expiration)
+	require.NoError(t, err)
+
+	// Verify it exists immediately
+	cachedMetrics, err := redisCache.Get(ctx, city)
+	require.NoError(t, err)
+	require.NotNil(t, cachedMetrics)
+
+	// Wait for expiration
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify it's expired
+	cachedMetrics, err = redisCache.Get(ctx, city)
+	require.NoError(t, err)
+	assert.Nil(t, cachedMetrics)
+}
+
+func TestRedisCache_SetWithExpiration_PastTime(t *testing.T) {
+	// Skip if Redis is not available
+	redisCache, err := cache.NewRedisCache("localhost:6379", "", 0, 10*time.Minute)
+	if err != nil {
+		t.Skip("Redis not available, skipping test")
+	}
+	defer func() {
+		if err := redisCache.Close(); err != nil {
+			t.Logf("Failed to close Redis cache: %v", err)
+		}
+	}()
+
+	ctx := context.Background()
+	city := "Invalid"
+	metrics := weather.Metrics{
+		Temperature: 0.0,
+		Humidity:    0.0,
+		Description: "Invalid",
+		City:        city,
+	}
+
+	// Try to set data with past expiration time
+	pastExpiration := time.Now().Add(-1 * time.Hour)
+	err = redisCache.SetWithExpiration(ctx, city, metrics, pastExpiration)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "expiration time must be in the future")
+}
+
+func TestRedisCache_GetDefaultTTL(t *testing.T) {
+	// Skip if Redis is not available
+	expectedTTL := 5 * time.Minute
+	redisCache, err := cache.NewRedisCache("localhost:6379", "", 0, expectedTTL)
+	if err != nil {
+		t.Skip("Redis not available, skipping test")
+	}
+	defer func() {
+		if err := redisCache.Close(); err != nil {
+			t.Logf("Failed to close Redis cache: %v", err)
+		}
+	}()
+
+	// Verify default TTL is returned correctly
+	defaultTTL := redisCache.GetDefaultTTL()
+	assert.Equal(t, expectedTTL, defaultTTL)
+}
