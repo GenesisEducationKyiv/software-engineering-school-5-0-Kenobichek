@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The Weather Forecast API is currently a monolithic Go application providing weather subscription services. It follows Clean Architecture principles, making it well-suited for decomposition into microservices.
+The Weather Forecast API is currently a monolithic Go application providing weather subscription services. Its Clean Architecture makes it well-suited for microservices decomposition.
 
 ### Core Components:
 - **Weather Service**: Aggregates weather data from external providers, with caching.
@@ -18,7 +18,6 @@ The Weather Forecast API is currently a monolithic Go application providing weat
 ## 2. Microservices Decomposition
 
 ### Guiding Principles
-
 - **Domain-Driven Boundaries**: Each service encapsulates a distinct business capability.
 - **Autonomous Services**: Each service owns its data and logic.
 - **Event-Driven Communication**: All inter-service communication is asynchronous, via a message broker (Kafka, NATS, RabbitMQ, etc.).
@@ -26,40 +25,40 @@ The Weather Forecast API is currently a monolithic Go application providing weat
 
 ### Identified Microservices
 
-#### **A. Weather Service**
+#### A. Weather Service
 - **Responsibilities**:
   - Aggregate weather data from multiple providers.
   - Implement provider fallback logic.
   - Cache weather data in Redis.
-- **Publish** `WeatherUpdated` events (with full weather state) to the message broker.
+  - **Publish** `WeatherUpdated` events (with full weather state) to the message broker.
 - **Data Ownership**: Weather cache.
 - **Dependencies**: External weather APIs, Redis, Message Broker.
 
-#### **B. Subscription Service**
+#### B. Subscription Service
 - **Responsibilities**:
   - Manage the full subscription lifecycle (create, confirm, cancel).
   - Store subscription and template data.
-- **Publish** `SubscriptionCreated`, `SubscriptionConfirmed`, and `SubscriptionCancelled` events (with full subscription state).
+  - **Publish** `SubscriptionCreated`, `SubscriptionConfirmed`, and `SubscriptionCancelled` events (with full subscription state).
 - **Data Ownership**: Subscriptions, email templates.
 - **Dependencies**: PostgreSQL, Message Broker.
 
-#### **C. Notification Service**
+#### C. Notification Service
 - **Responsibilities**:
   - **Subscribe** to relevant events (e.g., `SubscriptionCreated`, `WeatherUpdated`).
   - Deliver notifications via SendGrid (and future channels).
   - Manage notification templates and delivery logs.
-- **Publish** `NotificationSent` events (for audit/logging).
+  - **Publish** `NotificationSent` events (for audit/logging).
 - **Data Ownership**: Notification templates, delivery logs.
 - **Dependencies**: SendGrid, PostgreSQL, Message Broker.
 
-#### **D. Scheduler Service**
+#### D. Scheduler Service
 - **Responsibilities**:
   - **Subscribe** to events to schedule jobs (e.g., weather update notifications).
   - Manage job scheduling, retries, and failures.
 - **Data Ownership**: Job scheduling data.
 - **Dependencies**: PostgreSQL, Message Broker.
 
-#### **E. API Gateway**
+#### E. API Gateway
 - **Responsibilities**:
   - Route and aggregate client requests.
   - Publish commands/events to the broker.
@@ -71,14 +70,20 @@ The Weather Forecast API is currently a monolithic Go application providing weat
 
 ## 3. Event-Driven Communication
 
-### Event Streaming
-
+### Event Streaming & State Transfer
 - All services communicate asynchronously by publishing and subscribing to events via a message broker.
 - Events use **event-carried state transfer**: each event contains the full, relevant entity state, so consumers never need to query the producer for additional data.
 - Each service maintains its own local state, updated solely from the event stream.
 
-#### Example Event Flows
+### Reliability, Failure Handling, and Monitoring
+- **Delivery Guarantees**: The message broker provides at-least-once delivery. Events are persisted until successfully processed by all subscribers.
+- **Retry Mechanisms**: If a subscriber is temporarily unavailable or fails to process an event, the broker automatically retries delivery until acknowledgment or until a configurable retention period expires.
+- **Dead Letter Queue (DLQ)**: Events that cannot be processed after multiple attempts are routed to a DLQ for further inspection and manual intervention.
+- **Idempotency**: All event handlers must be idempotent to ensure that repeated deliveries do not cause inconsistent state or duplicate side effects.
+- **Monitoring & Alerting**: The system continuously monitors event delivery metrics, DLQ size, and subscriber health. Alerts are triggered on delivery failures, processing delays, or abnormal DLQ growth.
+- **Observability**: Distributed tracing and centralized logging are used to track event flow and diagnose issues across services.
 
+#### Example Event Flows
 - **Weather Service** publishes `WeatherUpdated` events (full weather data).
 - **Subscription Service** publishes `SubscriptionCreated`, `SubscriptionConfirmed`, `SubscriptionCancelled` events (full subscription state).
 - **Notification Service** subscribes to these events and sends notifications, then publishes `NotificationSent` events.
@@ -98,7 +103,6 @@ The Weather Forecast API is currently a monolithic Go application providing weat
 ## 4. Service Specifications
 
 ### 4.1 Weather Service
-
 - **Service Name**: `weather-service`
 - **Port**: 8081
 - **Protocol**: HTTP/gRPC (for health/metrics only)
@@ -111,7 +115,6 @@ The Weather Forecast API is currently a monolithic Go application providing weat
 - **Dependencies**: External weather APIs, Redis, Message Broker
 
 ### 4.2 Subscription Service
-
 - **Service Name**: `subscription-service`
 - **Port**: 8082
 - **Protocol**: HTTP/gRPC (for health/metrics only)
@@ -127,7 +130,6 @@ The Weather Forecast API is currently a monolithic Go application providing weat
 - **Dependencies**: PostgreSQL, Message Broker
 
 ### 4.3 Notification Service
-
 - **Service Name**: `notification-service`
 - **Port**: 8083
 - **Protocol**: HTTP/gRPC (for health/metrics only)
@@ -144,7 +146,6 @@ The Weather Forecast API is currently a monolithic Go application providing weat
 - **Dependencies**: SendGrid, PostgreSQL, Message Broker
 
 ### 4.4 Scheduler Service
-
 - **Service Name**: `scheduler-service`
 - **Port**: 8084
 - **Protocol**: HTTP/gRPC (for health/metrics only)
@@ -160,7 +161,6 @@ The Weather Forecast API is currently a monolithic Go application providing weat
 - **Dependencies**: PostgreSQL, Message Broker
 
 ### 4.5 API Gateway
-
 - **Service Name**: `api-gateway`
 - **Port**: 8080
 - **Protocol**: HTTP
@@ -178,7 +178,6 @@ The Weather Forecast API is currently a monolithic Go application providing weat
 ---
 
 ## 5. Data Management
-
 - **Database per Service**: Each service owns its database (no cross-service DB access).
 - **Eventual Consistency**: Data is synchronized across services via events.
 - **Event-Carried State Transfer**: All events include the full entity state.
@@ -187,7 +186,6 @@ The Weather Forecast API is currently a monolithic Go application providing weat
 ---
 
 ## 6. Deployment & Infrastructure
-
 - **Containerization**: Each service runs in its own Docker container.
 - **Shared Infrastructure**: Redis, PostgreSQL, Message Broker.
 - **Service Discovery & Load Balancing**: Managed by orchestration platform (e.g., Kubernetes).
@@ -197,7 +195,6 @@ The Weather Forecast API is currently a monolithic Go application providing weat
 ---
 
 ## 7. Benefits
-
 - **Scalability**: Independent scaling of services.
 - **Maintainability**: Smaller, focused codebases; independent deployments.
 - **Resilience**: Fault isolation, circuit breakers, graceful degradation.
