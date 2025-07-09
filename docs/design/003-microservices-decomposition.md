@@ -22,6 +22,7 @@ The Weather Forecast API is currently a monolithic Go application providing weat
 - **Autonomous Services**: Each service owns its data and logic.
 - **Event-Driven Communication**: All inter-service communication is asynchronous, via a message broker (Kafka, NATS, RabbitMQ, etc.).
 - **Event-Carried State Transfer**: Events include the full relevant entity state, eliminating the need for consumers to query producers for additional data.
+- **Read Model via Event-Carried State**: The API Gateway (or a dedicated read model service) maintains a local cache, updated from events published by backend services. All synchronous GET requests are served from this cache, ensuring no direct service-to-service calls.
 
 ### Identified Microservices
 
@@ -67,7 +68,7 @@ The Weather Forecast API is currently a monolithic Go application providing weat
     - `GET  /unsubscribe/{token}` – Unsubscribe endpoint
     - `GET  /health` – Health check
     - `GET  /metrics` – Prometheus metrics
-  - **Role**: The API Gateway acts solely as a façade. It receives external REST requests, performs basic validation and authentication, and then publishes corresponding **commands** (e.g., `CreateSubscriptionCommand`) to the message broker. All business logic and state changes are handled exclusively by backend microservices, not by the gateway. The gateway does not process or store business data, nor does it implement domain logic.
+  - **Role**: The API Gateway acts solely as a façade. For GET endpoints, it serves data from its local cache/read model, which is kept up-to-date by subscribing to relevant events (e.g., `weather.updated`). The gateway does not make synchronous calls to backend services for reads. For write operations, it receives external REST requests, performs basic validation and authentication, and then publishes corresponding **commands** (e.g., `CreateSubscriptionCommand`) to the message broker. All business logic and state changes are handled exclusively by backend microservices, not by the gateway. The gateway does not process or store business data, nor does it implement domain logic.
   - **Publishes**: Commands to the broker (e.g., `CreateSubscriptionCommand`).
   - **Note**: Only business services publish **events** (e.g., `SubscriptionCreated`) after processing commands.
   - **Dependencies**: All microservices (via broker), Rate limiting, Authentication
@@ -97,12 +98,13 @@ The Weather Forecast API is currently a monolithic Go application providing weat
 
 ### Event Topics Matrix
 
-| Event Topic            | Published By         | Consumed By                |
-|------------------------|----------------------|----------------------------|
-| weather.updated        | Weather Service      | Notification, Scheduler    |
-| subscription.created   | Subscription Service | Notification, Scheduler    |
-| subscription.cancelled | Subscription Service | Notification, Scheduler    |
-| notification.sent      | Notification Service | (Audit/Logging)            |
+| Event Topic            | Published By         | Consumed By                                       |
+|------------------------|----------------------|---------------------------------------------------|
+| weather.updated        | Weather Service      | Notification, Scheduler, API Gateway (read model) |
+| subscription.created   | Subscription Service | Notification, Scheduler                           |
+| subscription.confirmed | Subscription Service | Notification, Scheduler                           |
+| subscription.cancelled | Subscription Service | Notification, Scheduler                           |
+| notification.sent      | Notification Service | (Audit/Logging)                                   |
 
 ---
 
@@ -170,22 +172,24 @@ The Weather Forecast API is currently a monolithic Go application providing weat
 - **Service Name**: `api-gateway`
 - **Port**: 8080
 - **Protocol**: HTTP
-- **Database**: None (stateless)
+- **Database**: Local read model/cache (fed by events)
 - **Endpoints**:
-  - `GET /weather?city={city}` – Weather endpoint
+  - `GET  /weather?city={city}` – Weather endpoint (served from local cache)
   - `POST /subscribe` – Subscription endpoint
-  - `GET /confirm/{token}` – Confirmation endpoint
-  - `GET /unsubscribe/{token}` – Unsubscribe endpoint
-  - `GET /health` – Health check
-  - `GET /metrics` – Prometheus metrics
-- **Role**: The API Gateway acts solely as a façade. It receives external REST requests, performs basic validation and authentication, and then publishes corresponding commands or events to the message broker. All business logic and state changes are handled exclusively by backend microservices, not by the gateway. The gateway does not process or store business data, nor does it implement domain logic.
-- **Publishes**: Commands/events to the broker
+  - `GET  /confirm/{token}` – Confirmation endpoint
+  - `GET  /unsubscribe/{token}` – Unsubscribe endpoint
+  - `GET  /health` – Health check
+  - `GET  /metrics` – Prometheus metrics
+- **Role**: For GET endpoints, the API Gateway serves data from its local cache/read model, updated asynchronously via events. For write operations, it publishes commands to the broker. No synchronous calls to backend services are made for reads.
+- **Publishes**: Commands to the broker (e.g., `CreateSubscriptionCommand`).
+- **Note**: Only business services publish **events** (e.g., `SubscriptionCreated`) after processing commands.
 - **Dependencies**: All microservices (via broker), Rate limiting, Authentication
 
 ---
 
 ## 5. Data Management
 - **Database per Service**: Each service owns its database (no cross-service DB access).
+- **API Gateway Read Model**: The gateway’s cache/read model is updated asynchronously via events (e.g., `weather.updated`). All GET requests are served from this cache, ensuring high availability and no direct calls to backend services for reads.
 - **Eventual Consistency**: Data is synchronized across services via events.
 - **Event-Carried State Transfer**: All events include the full entity state.
 - **No Direct Data Calls**: Services never query each other for data; all state is received via events.
@@ -210,4 +214,4 @@ The Weather Forecast API is currently a monolithic Go application providing weat
 ---
 
 ## 8. Conclusion
-This microservices decomposition and event-driven architecture enable scalable, maintainable, and resilient evolution of the current system. By leveraging asynchronous event streaming and event-carried state transfer, services remain autonomous, loosely coupled, and robust to change. 
+This microservices decomposition and event-driven architecture enable scalable, maintainable, and resilient evolution of the current system. By leveraging asynchronous event streaming, event-carried state transfer, and an event-driven read model for the API Gateway, services remain autonomous, loosely coupled, and robust to change. 
