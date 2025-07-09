@@ -60,11 +60,16 @@ The Weather Forecast API is currently a monolithic Go application providing weat
 
 #### E. API Gateway
 - **Responsibilities**:
-  - Route and aggregate client requests.
-  - Publish commands/events to the broker.
-  - Handle authentication, authorization, rate limiting, and request transformation.
-- **Data Ownership**: API configuration, routing rules.
-- **Dependencies**: Message Broker.
+  - Exposes REST endpoints for external clients:
+    - `GET  /weather?city={city}` – Weather endpoint
+    - `POST /subscribe` – Subscription endpoint
+    - `GET  /confirm/{token}` – Confirmation endpoint
+    - `GET  /unsubscribe/{token}` – Unsubscribe endpoint
+    - `GET  /health` – Health check
+    - `GET  /metrics` – Prometheus metrics
+  - **Role**: The API Gateway acts solely as a façade. It receives external REST requests, performs basic validation and authentication, and then publishes corresponding commands or events to the message broker. All business logic and state changes are handled exclusively by backend microservices, not by the gateway. The gateway does not process or store business data, nor does it implement domain logic.
+- **Publishes**: Commands/events to the broker
+- **Dependencies**: All microservices (via broker), Rate limiting, Authentication
 
 ---
 
@@ -172,6 +177,7 @@ The Weather Forecast API is currently a monolithic Go application providing weat
   - `GET /unsubscribe/{token}` – Unsubscribe endpoint
   - `GET /health` – Health check
   - `GET /metrics` – Prometheus metrics
+- **Role**: The API Gateway acts solely as a façade. It receives external REST requests, performs basic validation and authentication, and then publishes corresponding commands or events to the message broker. All business logic and state changes are handled exclusively by backend microservices, not by the gateway. The gateway does not process or store business data, nor does it implement domain logic.
 - **Publishes**: Commands/events to the broker
 - **Dependencies**: All microservices (via broker), Rate limiting, Authentication
 
@@ -203,5 +209,4 @@ The Weather Forecast API is currently a monolithic Go application providing weat
 ---
 
 ## 8. Conclusion
-
 This microservices decomposition and event-driven architecture enable scalable, maintainable, and resilient evolution of the current system. By leveraging asynchronous event streaming and event-carried state transfer, services remain autonomous, loosely coupled, and robust to change. 
