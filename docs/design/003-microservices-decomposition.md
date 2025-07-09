@@ -67,9 +67,10 @@ The Weather Forecast API is currently a monolithic Go application providing weat
     - `GET  /unsubscribe/{token}` – Unsubscribe endpoint
     - `GET  /health` – Health check
     - `GET  /metrics` – Prometheus metrics
-  - **Role**: The API Gateway acts solely as a façade. It receives external REST requests, performs basic validation and authentication, and then publishes corresponding commands or events to the message broker. All business logic and state changes are handled exclusively by backend microservices, not by the gateway. The gateway does not process or store business data, nor does it implement domain logic.
-- **Publishes**: Commands/events to the broker
-- **Dependencies**: All microservices (via broker), Rate limiting, Authentication
+  - **Role**: The API Gateway acts solely as a façade. It receives external REST requests, performs basic validation and authentication, and then publishes corresponding **commands** (e.g., `CreateSubscriptionCommand`) to the message broker. All business logic and state changes are handled exclusively by backend microservices, not by the gateway. The gateway does not process or store business data, nor does it implement domain logic.
+  - **Publishes**: Commands to the broker (e.g., `CreateSubscriptionCommand`).
+  - **Note**: Only business services publish **events** (e.g., `SubscriptionCreated`) after processing commands.
+  - **Dependencies**: All microservices (via broker), Rate limiting, Authentication
 
 ---
 
