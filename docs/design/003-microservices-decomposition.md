@@ -1,217 +1,83 @@
 # Design-003: Microservices Decomposition & Event-Driven Architecture
 
-## 1. Overview
+## Overview
 
-The Weather Forecast API is currently a monolithic Go application providing weather subscription services. Its Clean Architecture makes it well-suited for microservices decomposition.
+Refactoring the monolithic Weather Forecast application into a scalable, resilient, and asynchronous microservices architecture using Kafka for event streaming and communication. The Weather Service remains synchronous for real-time requests, while other interactions use asynchronous event streams.
 
-### Core Components:
-- **Weather Service**: Aggregates weather data from external providers, with caching.
-- **Subscription Service**: Manages user subscriptions and their lifecycle.
-- **Notification Service**: Delivers notifications via email (SendGrid).
-- **Scheduler Service**: Orchestrates background jobs for weather updates.
-- **Database**: PostgreSQL for persistent data.
-- **Cache**: Redis for weather data.
-- **Monitoring**: Prometheus and Grafana.
+## Microservices and Responsibilities
 
----
+### 1. Weather Service (Synchronous)
 
-## 2. Microservices Decomposition
+* Retrieves weather data from external APIs.
+* Provides synchronous REST endpoints for real-time client queries.
+* Caches latest weather data locally (Redis).
+* Publishes `WeatherUpdated` events with full weather data state to Kafka.
 
-### Guiding Principles
-- **Domain-Driven Boundaries**: Each service encapsulates a distinct business capability.
-- **Autonomous Services**: Each service owns its data and logic.
-- **Event-Driven Communication**: All inter-service communication is asynchronous, via a message broker (Kafka, NATS, RabbitMQ, etc.).
-- **Event-Carried State Transfer**: Events include the full relevant entity state, eliminating the need for consumers to query producers for additional data.
-- **Read Model via Event-Carried State**: The API Gateway (or a dedicated read model service) maintains a local cache, updated from events published by backend services. All synchronous GET requests are served from this cache, ensuring no direct service-to-service calls.
+### 2. Subscription Service
 
-### Identified Microservices
+* Manages user subscriptions (create, confirm, cancel).
+* Stores subscription data.
+* Publishes events: `SubscriptionCreated`, `SubscriptionConfirmed`, `SubscriptionCancelled` to Kafka with full subscription state.
 
-#### A. Weather Service
-- **Responsibilities**:
-  - Aggregate weather data from multiple providers.
-  - Implement provider fallback logic.
-  - Cache weather data in Redis.
-  - **Publish** `WeatherUpdated` events (with full weather state) to the message broker.
-- **Data Ownership**: Weather cache.
-- **Dependencies**: External weather APIs, Redis, Message Broker.
+### 3. Notification Service
 
-#### B. Subscription Service
-- **Responsibilities**:
-  - Manage the full subscription lifecycle (create, confirm, cancel).
-  - Store subscription and template data.
-  - **Publish** `SubscriptionCreated`, `SubscriptionConfirmed`, and `SubscriptionCancelled` events (with full subscription state).
-- **Data Ownership**: Subscriptions, email templates.
-- **Dependencies**: PostgreSQL, Message Broker.
+* Subscribes to `WeatherUpdated` and subscription-related events from Kafka.
+* Sends notifications asynchronously via external services (e.g., SendGrid).
+* Publishes `NotificationSent` events to Kafka for logging/auditing.
 
-#### C. Notification Service
-- **Responsibilities**:
-  - **Subscribe** to relevant events (e.g., `SubscriptionCreated`, `WeatherUpdated`).
-  - Deliver notifications via SendGrid (and future channels).
-  - Manage notification templates and delivery logs.
-  - **Publish** `NotificationSent` events (for audit/logging).
-- **Data Ownership**: Notification templates, delivery logs.
-- **Dependencies**: SendGrid, PostgreSQL, Message Broker.
+### 4. Scheduler Service
 
-#### D. Scheduler Service
-- **Responsibilities**:
-  - **Subscribe** to events to schedule jobs (e.g., weather update notifications).
-  - Manage job scheduling, retries, and failures.
-- **Data Ownership**: Job scheduling data.
-- **Dependencies**: PostgreSQL, Message Broker.
+* Subscribes to `WeatherUpdated` and subscription-related events from Kafka.
+* Manages scheduling of notifications and background tasks.
+* Handles retries, error handling, and task management internally.
 
-#### E. API Gateway
-- **Responsibilities**:
-  - Exposes REST endpoints for external clients:
-    - `GET  /weather?city={city}` – Weather endpoint
-    - `POST /subscribe` – Subscription endpoint
-    - `GET  /confirm/{token}` – Confirmation endpoint
-    - `GET  /unsubscribe/{token}` – Unsubscribe endpoint
-    - `GET  /health` – Health check
-    - `GET  /metrics` – Prometheus metrics
-  - **Role**: The API Gateway acts solely as a façade. For GET endpoints, it serves data from its local cache/read model, which is kept up-to-date by subscribing to relevant events (e.g., `weather.updated`). The gateway does not make synchronous calls to backend services for reads. For write operations, it receives external REST requests, performs basic validation and authentication, and then publishes corresponding **commands** (e.g., `CreateSubscriptionCommand`) to the message broker. All business logic and state changes are handled exclusively by backend microservices, not by the gateway. The gateway does not process or store business data, nor does it implement domain logic.
-  - **Publishes**: Commands to the broker (e.g., `CreateSubscriptionCommand`).
-  - **Note**: Only business services publish **events** (e.g., `SubscriptionCreated`) after processing commands.
-  - **Dependencies**: All microservices (via broker), Rate limiting, Authentication
+### 5. API Gateway
 
----
+* Provides RESTful API endpoints for external client interactions.
+* Serves GET requests (e.g., cached weather data) from a local read-model updated asynchronously via Kafka.
+* Publishes commands (e.g., `CreateSubscriptionCommand`) to Kafka for write operations.
+* Handles basic validation, authentication, and rate limiting.
 
-## 3. Event-Driven Communication
+## Inter-Service Communication via Kafka
 
-### Event Streaming & State Transfer
-- All services communicate asynchronously by publishing and subscribing to events via a message broker.
-- Events use **event-carried state transfer**: each event contains the full, relevant entity state, so consumers never need to query the producer for additional data.
-- Each service maintains its own local state, updated solely from the event stream.
+All services, except direct client requests to Weather Service, communicate through Kafka:
 
-### Reliability, Failure Handling, and Monitoring
-- **Delivery Guarantees**: The message broker provides at-least-once delivery. Events are persisted until successfully processed by all subscribers.
-- **Retry Mechanisms**: If a subscriber is temporarily unavailable or fails to process an event, the broker automatically retries delivery until acknowledgment or until a configurable retention period expires.
-- **Dead Letter Queue (DLQ)**: Events that cannot be processed after multiple attempts are routed to a DLQ for further inspection and manual intervention.
-- **Idempotency**: All event handlers must be idempotent to ensure that repeated deliveries do not cause inconsistent state or duplicate side effects.
-- **Monitoring & Alerting**: The system continuously monitors event delivery metrics, DLQ size, and subscriber health. Alerts are triggered on delivery failures, processing delays, or abnormal DLQ growth.
-- **Observability**: Distributed tracing and centralized logging are used to track event flow and diagnose issues across services.
+| Kafka Topic              | Publisher            | Consumers                            |
+| ------------------------ | -------------------- | ------------------------------------ |
+| `weather.updated`        | Weather Service      | Notification, Scheduler, API Gateway |
+| `subscription.created`   | Subscription Service | Notification, Scheduler              |
+| `subscription.confirmed` | Subscription Service | Notification, Scheduler              |
+| `subscription.cancelled` | Subscription Service | Notification, Scheduler              |
+| `notification.sent`      | Notification Service | Audit/Logging                        |
+| `commands.subscription`  | API Gateway          | Subscription Service                 |
 
-#### Example Event Flows
-- **Weather Service** publishes `WeatherUpdated` events (full weather data).
-- **Subscription Service** publishes `SubscriptionCreated`, `SubscriptionConfirmed`, `SubscriptionCancelled` events (full subscription state).
-- **Notification Service** subscribes to these events and sends notifications, then publishes `NotificationSent` events.
-- **Scheduler Service** subscribes to events to schedule jobs.
+## Example Interaction Flow
 
-### Event Topics Matrix
+### Subscription Flow
 
-| Event Topic            | Published By         | Consumed By                                       |
-|------------------------|----------------------|---------------------------------------------------|
-| weather.updated        | Weather Service      | Notification, Scheduler, API Gateway (read model) |
-| subscription.created   | Subscription Service | Notification, Scheduler                           |
-| subscription.confirmed | Subscription Service | Notification, Scheduler                           |
-| subscription.cancelled | Subscription Service | Notification, Scheduler                           |
-| notification.sent      | Notification Service | (Audit/Logging)                                   |
+* Client sends subscription request (`POST`) to API Gateway.
+* API Gateway validates request and publishes `CreateSubscriptionCommand` to Kafka.
+* Subscription Service processes command, stores data, and publishes `SubscriptionCreated` event.
+* Notification Service consumes event and sends a confirmation email.
+* Scheduler Service schedules follow-up notifications.
 
----
+### Weather Update Flow
 
-## 4. Service Specifications
+* Weather Service fetches new weather data, updates local cache, and publishes `WeatherUpdated` event.
+* Notification Service receives event and sends notifications if required.
+* Scheduler Service schedules tasks based on updated weather.
+* API Gateway updates its local cache to serve future GET requests quickly.
 
-### 4.1 Weather Service
-- **Service Name**: `weather-service`
-- **Port**: 8081
-- **Protocol**: HTTP/gRPC (for health/metrics only)
-- **Database**: Redis (cache)
-- **Endpoints**:
-  - `GET /weather?city={city}` – Get current weather
-  - `GET /health` – Health check
-  - `GET /metrics` – Prometheus metrics
-- **Publishes**: `WeatherUpdated` events (full weather state)
-- **Dependencies**: External weather APIs, Redis, Message Broker
+## Error Handling & Reliability
 
-### 4.2 Subscription Service
-- **Service Name**: `subscription-service`
-- **Port**: 8082
-- **Protocol**: HTTP/gRPC (for health/metrics only)
-- **Database**: PostgreSQL
-- **Endpoints**:
-  - `POST /subscriptions` – Create subscription
-  - `PUT /subscriptions/{token}/confirm` – Confirm subscription
-  - `DELETE /subscriptions/{token}` – Unsubscribe
-  - `GET /subscriptions/due` – Get due subscriptions
-  - `GET /health` – Health check
-  - `GET /metrics` – Prometheus metrics
-- **Publishes**: `SubscriptionCreated`, `SubscriptionConfirmed`, `SubscriptionCancelled` events (full subscription state)
-- **Dependencies**: PostgreSQL, Message Broker
+* Kafka ensures at-least-once delivery of events.
+* Dead-letter queues (DLQ) handle persistent failures.
+* Services implement idempotent event processing to avoid duplication.
+* Monitoring and alerts for failures, delays, and abnormal DLQ growth.
 
-### 4.3 Notification Service
-- **Service Name**: `notification-service`
-- **Port**: 8083
-- **Protocol**: HTTP/gRPC (for health/metrics only)
-- **Database**: PostgreSQL (templates, logs)
-- **Endpoints**:
-  - `POST /notifications/weather` – Send weather update
-  - `POST /notifications/confirm` – Send confirmation
-  - `POST /notifications/unsubscribe` – Send unsubscribe
-  - `GET /templates` – Get notification templates
-  - `GET /health` – Health check
-  - `GET /metrics` – Prometheus metrics
-- **Subscribes**: `SubscriptionCreated`, `SubscriptionConfirmed`, `SubscriptionCancelled`, `WeatherUpdated`
-- **Publishes**: `NotificationSent` events (full notification state)
-- **Dependencies**: SendGrid, PostgreSQL, Message Broker
 
-### 4.4 Scheduler Service
-- **Service Name**: `scheduler-service`
-- **Port**: 8084
-- **Protocol**: HTTP/gRPC (for health/metrics only)
-- **Database**: PostgreSQL (job tracking)
-- **Endpoints**:
-  - `POST /scheduler/start` – Start scheduler
-  - `POST /scheduler/stop` – Stop scheduler
-  - `GET /scheduler/status` – Scheduler status
-  - `GET /jobs` – List scheduled jobs
-  - `GET /health` – Health check
-  - `GET /metrics` – Prometheus metrics
-- **Subscribes**: All relevant events for scheduling
-- **Dependencies**: PostgreSQL, Message Broker
+## Benefits
 
-### 4.5 API Gateway
-- **Service Name**: `api-gateway`
-- **Port**: 8080
-- **Protocol**: HTTP
-- **Database**: Local read model/cache (fed by events)
-- **Endpoints**:
-  - `GET  /weather?city={city}` – Weather endpoint (served from local cache)
-  - `POST /subscribe` – Subscription endpoint
-  - `GET  /confirm/{token}` – Confirmation endpoint
-  - `GET  /unsubscribe/{token}` – Unsubscribe endpoint
-  - `GET  /health` – Health check
-  - `GET  /metrics` – Prometheus metrics
-- **Role**: For GET endpoints, the API Gateway serves data from its local cache/read model, updated asynchronously via events. For write operations, it publishes commands to the broker. No synchronous calls to backend services are made for reads.
-- **Publishes**: Commands to the broker (e.g., `CreateSubscriptionCommand`).
-- **Note**: Only business services publish **events** (e.g., `SubscriptionCreated`) after processing commands.
-- **Dependencies**: All microservices (via broker), Rate limiting, Authentication
-
----
-
-## 5. Data Management
-- **Database per Service**: Each service owns its database (no cross-service DB access).
-- **API Gateway Read Model**: The gateway’s cache/read model is updated asynchronously via events (e.g., `weather.updated`). All GET requests are served from this cache, ensuring high availability and no direct calls to backend services for reads.
-- **Eventual Consistency**: Data is synchronized across services via events.
-- **Event-Carried State Transfer**: All events include the full entity state.
-- **No Direct Data Calls**: Services never query each other for data; all state is received via events.
-
----
-
-## 6. Deployment & Infrastructure
-- **Containerization**: Each service runs in its own Docker container.
-- **Shared Infrastructure**: Redis, PostgreSQL, Message Broker.
-- **Service Discovery & Load Balancing**: Managed by orchestration platform (e.g., Kubernetes).
-- **Monitoring & Observability**: Distributed tracing, centralized logging, metrics, and health checks.
-- **Security**: mTLS for internal communication, JWT for external access, secrets management.
-
----
-
-## 7. Benefits
-- **Scalability**: Independent scaling of services.
-- **Maintainability**: Smaller, focused codebases; independent deployments.
-- **Resilience**: Fault isolation, circuit breakers, graceful degradation.
-- **Team Autonomy**: Teams own services, enabling parallel development.
-
----
-
-## 8. Conclusion
-This microservices decomposition and event-driven architecture enable scalable, maintainable, and resilient evolution of the current system. By leveraging asynchronous event streaming, event-carried state transfer, and an event-driven read model for the API Gateway, services remain autonomous, loosely coupled, and robust to change. 
+* Scalability: Independent service scaling.
+* Resilience: Fault isolation and asynchronous processing.
+* Maintainability: Clear separation of concerns and easy service evolution.
