@@ -1,6 +1,7 @@
 package notification_test
 
 import (
+	"Weather-Forecast-API/internal/events"
 	"Weather-Forecast-API/internal/services/notification"
 	"errors"
 	"testing"
@@ -33,6 +34,12 @@ func (m *mockTemplateRepository) GetTemplateByName(name templates.Name) (*emailt
 		return nil, errors.New("template not found")
 	}
 	return t, nil
+}
+
+type mockEventPublisher struct{}
+
+func (m *mockEventPublisher) PublishNotificationSent(event events.NotificationSentEvent) error {
+	return nil
 }
 
 func TestService_SendConfirmation(t *testing.T) {
@@ -99,7 +106,8 @@ func TestService_SendConfirmation(t *testing.T) {
 				templates: tt.templates,
 				getErr:    tt.templateErr,
 			}
-			service := notification.NewService(notifier, templateRepo)
+			mockPublisher := &mockEventPublisher{}
+			service := notification.NewService(notifier, templateRepo, mockPublisher)
 
 			err := service.SendConfirmation(tt.channel, tt.recipient, tt.token)
 			if (err != nil) != tt.wantErr {
@@ -175,7 +183,8 @@ func TestService_SendWeatherUpdate(t *testing.T) {
 				templates: tt.templates,
 				getErr:    tt.templateErr,
 			}
-			service := notification.NewService(notifier, templateRepo)
+			mockPublisher := &mockEventPublisher{}
+			service := notification.NewService(notifier, templateRepo, mockPublisher)
 
 			err := service.SendWeatherUpdate(tt.channel, tt.recipient, tt.metrics)
 			if (err != nil) != tt.wantErr {
@@ -241,7 +250,8 @@ func TestService_SendUnsubscribe(t *testing.T) {
 				templates: tt.templates,
 				getErr:    tt.templateErr,
 			}
-			service := notification.NewService(notifier, templateRepo)
+			mockPublisher := &mockEventPublisher{}
+			service := notification.NewService(notifier, templateRepo, mockPublisher)
 
 			err := service.SendUnsubscribe(tt.channel, tt.recipient, tt.city)
 			if (err != nil) != tt.wantErr {

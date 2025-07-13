@@ -1,12 +1,14 @@
 package subscription_test
 
 import (
+	"Weather-Forecast-API/internal/events"
 	"Weather-Forecast-API/internal/services/subscription"
 	"errors"
 	"testing"
 	"time"
 
 	"Weather-Forecast-API/internal/repository/subscriptions"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -45,6 +47,21 @@ func (m *mockSubscriptionRepository) UpdateNextNotification(id int, next time.Ti
 	return args.Error(0)
 }
 
+type mockEventPublisher struct{}
+
+func (m *mockEventPublisher) PublishWeatherUpdated(event events.WeatherUpdatedEvent) error {
+	return nil
+}
+func (m *mockEventPublisher) PublishSubscriptionCreated(event events.SubscriptionCreatedEvent) error {
+	return nil
+}
+func (m *mockEventPublisher) PublishSubscriptionConfirmed(event events.SubscriptionConfirmedEvent) error {
+	return nil
+}
+func (m *mockEventPublisher) PublishSubscriptionCancelled(event events.SubscriptionCancelledEvent) error {
+	return nil
+}
+
 func TestSubscribe(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -61,7 +78,8 @@ func TestSubscribe(t *testing.T) {
 			mockRepo := new(mockSubscriptionRepository)
 			mockRepo.On("CreateSubscription", tt.input).Return(tt.mockResult)
 
-			service := subscription.NewService(mockRepo)
+			mockPublisher := &mockEventPublisher{}
+			service := subscription.NewService(mockRepo, mockPublisher)
 			err := service.Subscribe(tt.input)
 
 			if tt.wantError {
@@ -91,7 +109,8 @@ func TestUnsubscribe(t *testing.T) {
 			mockRepo := new(mockSubscriptionRepository)
 			mockRepo.On("UnsubscribeByToken", tt.input).Return(tt.mockResult)
 
-			service := subscription.NewService(mockRepo)
+			mockPublisher := &mockEventPublisher{}
+			service := subscription.NewService(mockRepo, mockPublisher)
 			err := service.Unsubscribe(&subscriptions.Info{Token: tt.input})
 
 			if tt.wantError {
@@ -121,7 +140,8 @@ func TestConfirm(t *testing.T) {
 			mockRepo := new(mockSubscriptionRepository)
 			mockRepo.On("ConfirmByToken", tt.input).Return(tt.mockResult)
 
-			service := subscription.NewService(mockRepo)
+			mockPublisher := &mockEventPublisher{}
+			service := subscription.NewService(mockRepo, mockPublisher)
 			err := service.Confirm(&subscriptions.Info{Token: tt.input})
 
 			if tt.wantError {
@@ -154,7 +174,8 @@ func TestGetSubscriptionByToken(t *testing.T) {
 			mockRepo := new(mockSubscriptionRepository)
 			mockRepo.On("GetSubscriptionByToken", tt.input).Return(tt.mockResult, tt.mockError)
 
-			service := subscription.NewService(mockRepo)
+			mockPublisher := &mockEventPublisher{}
+			service := subscription.NewService(mockRepo, mockPublisher)
 			result, err := service.GetSubscriptionByToken(tt.input)
 
 			if tt.expectedError {
@@ -178,7 +199,8 @@ func TestGetDueSubscriptions(t *testing.T) {
 	mockRepo := new(mockSubscriptionRepository)
 	mockRepo.On("GetDueSubscriptions").Return(mockResult)
 
-	service := subscription.NewService(mockRepo)
+	mockPublisher := &mockEventPublisher{}
+	service := subscription.NewService(mockRepo, mockPublisher)
 	result := service.GetDueSubscriptions()
 
 	assert.Equal(t, mockResult, result)
@@ -203,7 +225,8 @@ func TestUpdateNextNotification(t *testing.T) {
 			mockRepo := new(mockSubscriptionRepository)
 			mockRepo.On("UpdateNextNotification", tt.id, tt.next).Return(tt.mockResult)
 
-			service := subscription.NewService(mockRepo)
+			mockPublisher := &mockEventPublisher{}
+			service := subscription.NewService(mockRepo, mockPublisher)
 			err := service.UpdateNextNotification(tt.id, tt.next)
 
 			if tt.wantError {

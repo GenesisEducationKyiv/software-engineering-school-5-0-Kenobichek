@@ -1,10 +1,12 @@
 package cached
 
 import (
+	"Weather-Forecast-API/internal/events"
 	"Weather-Forecast-API/internal/handlers/weather"
 	"context"
 	"fmt"
 	"log"
+	"time"
 )
 
 type weatherChainHandler interface {
@@ -18,16 +20,33 @@ type weatherCacheManager interface {
 	Close() error
 }
 
+type eventPublisher interface {
+	PublishWeatherUpdated(event events.WeatherUpdatedEvent) error
+}
 
 type CachedWeatherProvider struct {
-	provider weatherChainHandler
-	cache    weatherCacheManager
+	provider       weatherChainHandler
+	cache          weatherCacheManager
+	eventPublisher eventPublisher
 }
 
 func NewCachedWeatherProvider(provider weatherChainHandler, cache weatherCacheManager) *CachedWeatherProvider {
 	return &CachedWeatherProvider{
 		provider: provider,
 		cache:    cache,
+	}
+}
+
+// NewCachedWeatherProviderWithEvents creates a cached weather provider with event publishing
+func NewCachedWeatherProviderWithEvents(
+	provider weatherChainHandler,
+	cache weatherCacheManager,
+	eventPublisher eventPublisher,
+) *CachedWeatherProvider {
+	return &CachedWeatherProvider{
+		provider:       provider,
+		cache:          cache,
+		eventPublisher: eventPublisher,
 	}
 }
 
@@ -49,6 +68,22 @@ func (c *CachedWeatherProvider) GetWeatherByCity(ctx context.Context, city strin
 	go func() {
 		if err := c.cache.Set(context.Background(), city, metrics); err != nil {
 			log.Printf("Failed to cache weather data for city %s: %v", city, err)
+		} else if c.eventPublisher != nil {
+			// Publish weather updated event if event publisher is available
+			weatherEvent := events.WeatherUpdatedEvent{
+				City: city,
+				Metrics: map[string]interface{}{
+					"temperature": metrics.Temperature,
+					"humidity":    metrics.Humidity,
+					"description": metrics.Description,
+					"city":        metrics.City,
+				},
+				UpdatedAt: time.Now(),
+			}
+
+			if err := c.eventPublisher.PublishWeatherUpdated(weatherEvent); err != nil {
+				log.Printf("Failed to publish weather updated event for city %s: %v", city, err)
+			}
 		}
 	}()
 

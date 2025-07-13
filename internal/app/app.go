@@ -52,8 +52,10 @@ func (a *App) Run() error {
 	subsRepo := subscriptions.New(dbConn)
 	tmplsRepo := emailtemplates.New(dbConn)
 
-	subSvc := subscription.NewService(subsRepo)
-	notifSvc := notification.NewService(emailNotifier, tmplsRepo)
+	eventPublisher := a.buildEventPublisher()
+
+	subSvc := subscription.NewService(subsRepo, eventPublisher)
+	notifSvc := notification.NewService(emailNotifier, tmplsRepo, eventPublisher)
 
 	taskScheduler := scheduler.NewScheduler(notifSvc, subSvc, weatherProvChain, weatherHandlerTimeout)
 

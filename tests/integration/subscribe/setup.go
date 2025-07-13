@@ -80,7 +80,7 @@ func newAppRouterWithDB(t *testing.T, db *sql.DB, notifSvc notificationManager) 
 	t.Helper()
 
 	subsRepo := subscriptions.New(db)
-	subsSvc := subscription.NewService(subsRepo)
+	subsSvc := subscription.NewService(subsRepo, nil)
 	subscribeHandler := subscribe.NewHandler(subsSvc, notifSvc)
 
 	weatherHandler := weather.NewHandler(nil, 5*time.Second)

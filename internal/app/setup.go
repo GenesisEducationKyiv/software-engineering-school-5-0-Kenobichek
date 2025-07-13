@@ -7,6 +7,7 @@ import (
 	"Weather-Forecast-API/external/weatherapi"
 	"Weather-Forecast-API/internal/cache"
 	"Weather-Forecast-API/internal/db"
+	"Weather-Forecast-API/internal/events"
 	"Weather-Forecast-API/internal/handlers/subscribe"
 	"Weather-Forecast-API/internal/handlers/weather"
 	"Weather-Forecast-API/internal/notifier/sengridnotifier"
@@ -19,6 +20,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -33,7 +35,7 @@ const (
 )
 
 func (a *App) loadConfigIfEmpty() (Config, error) {
-	if (a.config == Config{}) {
+	if a.config.Server.Port == 0 {
 		return config.MustLoad()
 	}
 
@@ -101,6 +103,32 @@ func (a *App) buildRedisCache() (*cache.RedisCache, error) {
 	addr := fmt.Sprintf("%s:%d", redisCfg.Host, redisCfg.Port)
 
 	return cache.NewRedisCache(addr, redisCfg.Password, redisCfg.DB, redisCfg.TTL)
+}
+
+type eventPublisherManager interface {
+	PublishWeatherUpdated(event events.WeatherUpdatedEvent) error
+	PublishSubscriptionCreated(event events.SubscriptionCreatedEvent) error
+	PublishSubscriptionConfirmed(event events.SubscriptionConfirmedEvent) error
+	PublishSubscriptionCancelled(event events.SubscriptionCancelledEvent) error
+	PublishNotificationSent(event events.NotificationSentEvent) error
+}
+
+func (a *App) buildEventPublisher() eventPublisherManager {
+	// Check if we're running in Docker by looking for environment variables
+	// or by checking if we can resolve the kafka service name
+	brokers := a.config.Kafka.Brokers
+
+	// For Docker environment, use the internal service name
+	// For local development, use localhost:29092
+	if len(brokers) == 1 && brokers[0] == "localhost:29092" {
+		// In Docker Compose, services can communicate using service names
+		brokers = []string{"kafka:9092"}
+		log.Printf("Docker environment detected, using internal Kafka address: %v", brokers)
+	} else {
+		log.Printf("Using configured Kafka brokers: %v", brokers)
+	}
+
+	return events.NewKafkaPublisher(brokers)
 }
 
 type subscriptionManager interface {
@@ -173,7 +201,15 @@ func (a *App) buildWeatherProviderChain(client *http.Client) (*cached.CachedWeat
 	weatherapiChain := chain.NewChainWeatherProvider(weatherAPIProvider)
 	weatherapiChain.SetNext(openweatherChain)
 
-	cachedProvider := cached.NewCachedWeatherProvider(weatherapiChain, redisCache)
+	eventPublisher := a.buildEventPublisher()
 
-	return cachedProvider, nil
+	if eventPublisher != nil {
+		// Use event-enabled provider
+		cachedProvider := cached.NewCachedWeatherProviderWithEvents(weatherapiChain, redisCache, eventPublisher)
+		return cachedProvider, nil
+	} else {
+		// Use regular provider (backward compatibility)
+		cachedProvider := cached.NewCachedWeatherProvider(weatherapiChain, redisCache)
+		return cachedProvider, nil
+	}
 }

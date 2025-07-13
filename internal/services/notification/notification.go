@@ -2,12 +2,14 @@ package notification
 
 import (
 	"Weather-Forecast-API/external/sendgridemailapi"
+	"Weather-Forecast-API/internal/events"
 	"Weather-Forecast-API/internal/handlers/weather"
 	"Weather-Forecast-API/internal/repository/emailtemplates"
 	"Weather-Forecast-API/internal/templates"
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type emailNotifierManager interface {
@@ -18,19 +20,26 @@ type templateRepositoryManager interface {
 	GetTemplateByName(name templates.Name) (*emailtemplates.MessageTemplate, error)
 }
 
+type eventPublisherManagerher interface {
+	PublishNotificationSent(event events.NotificationSentEvent) error
+}
+
 func NewService(
-	notifier emailNotifierManager,
-	templates templateRepositoryManager,
+	notifier		emailNotifierManager,
+	templates		templateRepositoryManager,
+	eventPublisher	eventPublisherManagerher,
 ) *Service {
 	return &Service{
-		notifier:  notifier,
-		templates: templates,
+		notifier:       notifier,
+		templates:      templates,
+		eventPublisher: eventPublisher,
 	}
 }
 
 type Service struct {
-	notifier  emailNotifierManager
-	templates templateRepositoryManager
+	notifier       emailNotifierManager
+	templates      templateRepositoryManager
+	eventPublisher eventPublisherManagerher
 }
 
 func (s *Service) SendConfirmation(
@@ -75,7 +84,18 @@ func (s *Service) SendWeatherUpdate(
 
 		subject := strings.ReplaceAll(tpl.Subject, "{{ city }}", metrics.City)
 
-		return s.notifier.Send(recipient, message, subject)
+		err = s.notifier.Send(recipient, message, subject)
+		if err == nil && s.eventPublisher != nil {
+			event := events.NotificationSentEvent{
+				NotificationID: "", // You can generate or pass a real ID if available
+				ChannelType:    channel,
+				Recipient:      recipient,
+				Status:         "sent",
+				SentAt:         time.Now(),
+			}
+			_ = s.eventPublisher.PublishNotificationSent(event)
+		}
+		return err
 	default:
 		return fmt.Errorf("unsupported channel type: %s", channel)
 	}

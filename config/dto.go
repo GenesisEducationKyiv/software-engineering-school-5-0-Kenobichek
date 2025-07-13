@@ -9,6 +9,7 @@ type Config struct {
 	OpenWeather OpenWeatherConfig
 	Weather     WeatherConfig
 	Redis       RedisConfig
+	Kafka       KafkaConfig
 }
 
 type ServerConfig struct {
@@ -47,4 +48,8 @@ type RedisConfig struct {
 	Password string        `envconfig:"REDIS_PASSWORD"`
 	DB       int           `envconfig:"REDIS_DB" default:"0"`
 	TTL      time.Duration `envconfig:"REDIS_CACHE_TTL" default:"10m"`
+}
+
+type KafkaConfig struct {
+	Brokers []string `envconfig:"KAFKA_BROKERS" required:"true" default:"localhost:29092"`
 }
