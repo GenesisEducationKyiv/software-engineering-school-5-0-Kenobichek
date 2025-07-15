@@ -79,6 +79,7 @@ func (c *CachedWeatherProvider) GetWeatherByCity(ctx context.Context, city strin
 					"city":        metrics.City,
 				},
 				UpdatedAt: time.Now(),
+				Email:     "test@example.com", // TODO: use real subscriber email(s)
 			}
 
 			if err := c.eventPublisher.PublishWeatherUpdated(weatherEvent); err != nil {

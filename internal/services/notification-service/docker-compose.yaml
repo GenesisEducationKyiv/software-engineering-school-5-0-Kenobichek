@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  notification-service:
+    build: .
+    environment:
+      - PORT=${PORT}
+      - KAFKA_BROKERS=${KAFKA_BROKERS}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - SENDER_EMAIL=${SENDER_EMAIL}
+      - SENDER_NAME=${SENDER_NAME}
+    ports:
+      - "${PORT}:${PORT}"
+    networks:
+      - weather-net
+
+networks:
+  weather-net:
+    external: true
+    name: software-engineering-school-5-0-kenobichek_default

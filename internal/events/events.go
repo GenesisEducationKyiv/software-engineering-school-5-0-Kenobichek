@@ -8,6 +8,7 @@ type WeatherUpdatedEvent struct {
 	City      string                 `json:"city"`
 	Metrics   map[string]interface{} `json:"metrics"`
 	UpdatedAt time.Time              `json:"updated_at"`
+	Email     string                 `json:"email"`
 }
 
 type SubscriptionCreatedEvent struct {
