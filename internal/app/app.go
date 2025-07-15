@@ -3,11 +3,6 @@ package app
 import (
 	"Weather-Forecast-API/config"
 	"Weather-Forecast-API/internal/httpclient"
-	"Weather-Forecast-API/internal/repository/emailtemplates"
-	"Weather-Forecast-API/internal/repository/subscriptions"
-	"Weather-Forecast-API/internal/scheduler"
-	"Weather-Forecast-API/internal/services/notification"
-	"Weather-Forecast-API/internal/services/subscription"
 	"context"
 	"errors"
 	"log"
@@ -36,12 +31,12 @@ func (a *App) Run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	dbConn, err := a.connectDatabase()
-	if err != nil {
-		return err
-	}
+	// dbConn, err := a.connectDatabase()
+	// if err != nil {
+	// 	return err
+	// }
 
-	emailNotifier := a.buildSendGridEmailNotifier()
+	// emailNotifier := a.buildSendGridEmailNotifier()
 	httpClient := httpclient.New()
 
 	weatherProvChain, err := a.buildWeatherProviderChain(httpClient)
@@ -49,28 +44,28 @@ func (a *App) Run() error {
 		return err
 	}
 
-	subsRepo := subscriptions.New(dbConn)
-	tmplsRepo := emailtemplates.New(dbConn)
+	// subsRepo := subscriptions.New(nil)
+	// tmplsRepo := emailtemplates.New(nil)
 
-	eventPublisher := a.buildEventPublisher()
+	// eventPublisher := a.buildEventPublisher()
 
-	subSvc := subscription.NewService(subsRepo, eventPublisher)
-	notifSvc := notification.NewService(emailNotifier, tmplsRepo, eventPublisher)
+	// subSvc := subscription.NewService(nil, eventPublisher)
+	// notifSvc := notification.NewService(emailNotifier, tmplsRepo, eventPublisher)
 
-	taskScheduler := scheduler.NewScheduler(notifSvc, subSvc, weatherProvChain, weatherHandlerTimeout)
+	// taskScheduler := scheduler.NewScheduler(nil, nil, weatherProvChain, weatherHandlerTimeout)
 
-	router := a.buildRouter(weatherProvChain, subSvc, notifSvc)
+	router := a.buildRouter(weatherProvChain, nil, nil)
 	server := a.newHTTPServer(router)
 
 	var wg sync.WaitGroup
 
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if _, err := taskScheduler.Start(); err != nil {
-			log.Printf("Scheduler error: %v", err)
-		}
-	}()
+	// go func() {
+	// 	defer wg.Done()
+	// 	if _, err := taskScheduler.Start(); err != nil {
+	// 		log.Printf("Scheduler error: %v", err)
+	// 	}
+	// }()
 
 	wg.Add(1)
 	go func() {
@@ -92,15 +87,15 @@ func (a *App) Run() error {
 		log.Printf("HTTP server shutdown error: %v", err)
 	}
 
-	if err := taskScheduler.Stop(); err != nil {
-		log.Printf("Scheduler shutdown error: %v", err)
-	}
+	// if err := taskScheduler.Stop(); err != nil {
+	// 	log.Printf("Scheduler shutdown error: %v", err)
+	// }
 
 	wg.Wait()
 
-	if err := dbConn.Close(); err != nil {
-		log.Printf("Failed to close database connection: %v", err)
-	}
+	// if err := dbConn.Close(); err != nil {
+	// 	log.Printf("Failed to close database connection: %v", err)
+	// }
 
 	log.Println("Application shutdown complete")
 	return nil

@@ -1,0 +1,49 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:latest
+    container_name: subscription-db
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - pgdata-subscription:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    networks:
+      - weather-net
+
+  subscription-service:
+    build: .
+    container_name: subscription-service
+    environment:
+      - PORT=${PORT}
+      - KAFKA_BROKERS=${KAFKA_BROKERS}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${PORT}:${PORT}"
+    restart: unless-stopped
+    networks:
+      - weather-net
+
+volumes:
+  pgdata-subscription:
+
+networks:
+  weather-net:
+    external: true
+    name: software-engineering-school-5-0-kenobichek_default 

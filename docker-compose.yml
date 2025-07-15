@@ -13,8 +13,8 @@ services:
     env_file:
       - .env
     depends_on:
-      db:
-        condition: service_healthy
+      # db:
+      #   condition: service_healthy
       redis:
         condition: service_healthy
       kafka:
@@ -72,24 +72,24 @@ services:
       kafka:
         condition: service_healthy
 
-  db:
-    image: postgres:latest
-    container_name: weather-db
-    environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      PGPORT: ${DB_PORT}
-    ports:
-      - "${DB_PORT}:${DB_PORT}"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: ${HEALTH_CHECK_INTERVAL:-10s}
-      retries: ${HEALTH_CHECK_RETRIES:-5}
-      start_period: ${HEALTH_CHECK_START_PERIOD:-30s}
-      timeout: ${HEALTH_CHECK_TIMEOUT:-10s}
+  # db:
+  #   image: postgres:latest
+  #   container_name: weather-db
+  #   environment:
+  #     POSTGRES_DB: ${DB_NAME}
+  #     POSTGRES_USER: ${DB_USER}
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD}
+  #     PGPORT: ${DB_PORT}
+  #   ports:
+  #     - "${DB_PORT}:${DB_PORT}"
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+  #     interval: ${HEALTH_CHECK_INTERVAL:-10s}
+  #     retries: ${HEALTH_CHECK_RETRIES:-5}
+  #     start_period: ${HEALTH_CHECK_START_PERIOD:-30s}
+  #     timeout: ${HEALTH_CHECK_TIMEOUT:-10s}
 
   redis:
     image: redis:7-alpine

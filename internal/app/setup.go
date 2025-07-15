@@ -6,19 +6,16 @@ import (
 	"Weather-Forecast-API/external/sendgridemailapi"
 	"Weather-Forecast-API/external/weatherapi"
 	"Weather-Forecast-API/internal/cache"
-	"Weather-Forecast-API/internal/db"
 	"Weather-Forecast-API/internal/events"
 	"Weather-Forecast-API/internal/handlers/subscribe"
 	"Weather-Forecast-API/internal/handlers/weather"
 	"Weather-Forecast-API/internal/notifier/sengridnotifier"
-	"Weather-Forecast-API/internal/repository/subscriptions"
 	"Weather-Forecast-API/internal/routes"
 	"Weather-Forecast-API/internal/weatherprovider/cached"
 	"Weather-Forecast-API/internal/weatherprovider/chain"
 	"Weather-Forecast-API/internal/weatherprovider/openweatherprovider"
 	"Weather-Forecast-API/internal/weatherprovider/weatherapiprovider"
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -40,18 +37,6 @@ func (a *App) loadConfigIfEmpty() (Config, error) {
 	}
 
 	return a.config, nil
-}
-
-func (a *App) connectDatabase() (*sql.DB, error) {
-	dbConn, err := db.Init(a.config.GetDatabaseDSN())
-	if err != nil {
-		return nil, err
-	}
-
-	if err := db.RunMigrations(dbConn); err != nil {
-		return nil, err
-	}
-	return dbConn, nil
 }
 
 func (a *App) buildSendGridEmailNotifier() *sengridnotifier.SendGridEmailNotifier {
@@ -132,18 +117,9 @@ func (a *App) buildEventPublisher() eventPublisherManager {
 }
 
 type subscriptionManager interface {
-	Subscribe(sub *subscriptions.Info) error
-	Unsubscribe(sub *subscriptions.Info) error
-	Confirm(sub *subscriptions.Info) error
-	GetSubscriptionByToken(token string) (*subscriptions.Info, error)
-	GetDueSubscriptions() []subscriptions.Info
-	UpdateNextNotification(id int, next time.Time) error
 }
 
 type notificationManager interface {
-	SendWeatherUpdate(channel string, recipient string, metrics weather.Metrics) error
-	SendConfirmation(channel string, recipient string, token string) error
-	SendUnsubscribe(channel string, recipient string, city string) error
 }
 
 type weatherChainHandler interface {
