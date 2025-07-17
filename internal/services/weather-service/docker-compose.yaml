@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  weather-service:
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "${PORT}:${PORT}"
+
+  redis:
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
+
