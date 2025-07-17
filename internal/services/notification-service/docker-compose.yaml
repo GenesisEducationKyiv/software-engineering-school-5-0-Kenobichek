@@ -2,12 +2,8 @@ version: '3.8'
 services:
   notification-service:
     build: .
-    environment:
-      - PORT=${PORT}
-      - KAFKA_BROKERS=${KAFKA_BROKERS}
-      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
-      - SENDER_EMAIL=${SENDER_EMAIL}
-      - SENDER_NAME=${SENDER_NAME}
+    env_file:
+      - .env
     ports:
       - "${PORT}:${PORT}"
     networks:
