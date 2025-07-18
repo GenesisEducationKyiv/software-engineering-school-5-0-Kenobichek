@@ -6,9 +6,18 @@ services:
       - .env
     ports:
       - "${PORT}:${PORT}"
+    networks:
+      - weather-net
 
   redis:
     image: redis:7.2-alpine
     ports:
       - "6379:6379"
+    networks:
+      - weather-net
 
+
+networks:
+  weather-net:
+    external: true
+    name: software-engineering-school-5-0-kenobichek_default 

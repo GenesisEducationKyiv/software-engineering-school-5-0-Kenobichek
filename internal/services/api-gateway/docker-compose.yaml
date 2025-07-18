@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  api-gateway:
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "${PORT}:${PORT}"
+    networks:
+      - weather-net
+
+networks:
+  weather-net:
+    external: true
+    name: software-engineering-school-5-0-kenobichek_default 
