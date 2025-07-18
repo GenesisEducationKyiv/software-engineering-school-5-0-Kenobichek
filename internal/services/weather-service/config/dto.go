@@ -14,7 +14,7 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Port                    int           `envconfig:"PORT" required:"true" default:"8080"`
+	Port                    int           `envconfig:"PORT" required:"true" default:"9091"`
 	GracefulShutdownTimeout time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT" default:"30s"`
 }
 

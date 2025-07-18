@@ -6,7 +6,12 @@ Weather Subscription API – A simple API that lets users subscribe to weather u
 ### Build
 
 ```shell script
-docker-compose up --build      # compiles the project and starts required services
+docker-compose -f docker-compose.kafka.yaml \
+  -f internal/services/api-gateway/docker-compose.yaml \
+  -f internal/services/weather-service/docker-compose.yaml \
+  -f internal/services/notification-service/docker-compose.yaml \
+  -f internal/services/subscription-service/docker-compose.yaml \
+  up --build
 ```
 
 

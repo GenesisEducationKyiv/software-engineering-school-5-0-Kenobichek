@@ -10,7 +10,7 @@ type Config struct {
 	Port               string   `envconfig:"PORT" default:"8084"`
 	KafkaBrokers       []string `envconfig:"KAFKA_BROKERS" required:"true"`
 	KafkaTopic         string   `envconfig:"KAFKA_TOPIC" required:"true"`
-	WeatherServiceAddr string   `envconfig:"WEATHER_SERVICE_ADDR" default:"weather-service:8083"`
+	WeatherServiceAddr string   `envconfig:"WEATHER_SERVICE_ADDR" default:"weather-service:8081"`
 }
 
 func Load() (Config, error) {
