@@ -7,31 +7,50 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-// KafkaPublisher публикует события SubscriptionEvent в Kafka
-// Используйте один экземпляр на сервис
-
 type KafkaPublisher struct {
-	writer *kafka.Writer
+	brokers []string
+	writers map[string]*kafka.Writer
 }
 
-func NewKafkaPublisher(brokers []string, topic string) *KafkaPublisher {
+func NewKafkaPublisher(brokers []string, _ string) *KafkaPublisher {
 	return &KafkaPublisher{
-		writer: &kafka.Writer{
-			Addr:     kafka.TCP(brokers...),
-			Topic:    topic,
-			Balancer: &kafka.LeastBytes{},
-		},
+		brokers: brokers,
+		writers: make(map[string]*kafka.Writer),
 	}
 }
 
-func (p *KafkaPublisher) Publish(ctx context.Context, event interface{}) error {
+func (p *KafkaPublisher) getWriter(topic string) *kafka.Writer {
+	if w, ok := p.writers[topic]; ok {
+		return w
+	}
+	w := &kafka.Writer{
+		Addr:     kafka.TCP(p.brokers...),
+		Topic:    topic,
+		Balancer: &kafka.LeastBytes{},
+	}
+	p.writers[topic] = w
+	return w
+}
+
+func (p *KafkaPublisher) PublishWithTopic(ctx context.Context, topic string, event interface{}) error {
 	msg, err := json.Marshal(event)
 	if err != nil {
 		return err
 	}
-	return p.writer.WriteMessages(ctx, kafka.Message{Value: msg})
+	writer := p.getWriter(topic)
+	return writer.WriteMessages(ctx, kafka.Message{Value: msg})
+}
+
+func (p *KafkaPublisher) Publish(ctx context.Context, event interface{}) error {
+	return p.PublishWithTopic(ctx, "default", event)
 }
 
 func (p *KafkaPublisher) Close() error {
-	return p.writer.Close()
+	var firstErr error
+	for _, w := range p.writers {
+		if err := w.Close(); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
 }

@@ -28,27 +28,38 @@ func NewSubscribeHandler(publisher *kafka.Publisher) *SubscribeHandler {
 }
 
 func (h *SubscribeHandler) Subscribe(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		ChannelType  string `json:"channel_type"`
-		ChannelValue string `json:"channel_value"`
-		City         string `json:"city"`
-		Frequency    string `json:"frequency"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		http.Error(w, "invalid multipart form", http.StatusBadRequest)
 		return
 	}
+
+	email := r.FormValue("email")
+	city := r.FormValue("city")
+	frequency := r.FormValue("frequency")
+
+	var frequencyMinutes int
+	switch frequency {
+	case "hourly":
+		frequencyMinutes = 60
+	case "daily":
+		frequencyMinutes = 1440
+	default:
+		http.Error(w, "invalid frequency", http.StatusBadRequest)
+		return
+	}
+
 	cmd := SubscriptionCommand{
-		Command:      "subscribe",
-		ChannelType:  req.ChannelType,
-		ChannelValue: req.ChannelValue,
-		City:         req.City,
-		Frequency:    req.Frequency,
+		Command:          "subscribe",
+		ChannelType:      "email",
+		ChannelValue:     email,
+		City:             city,
+		Frequency:        frequency,
+		FrequencyMinutes: frequencyMinutes,
 	}
 	payload, _ := json.Marshal(cmd)
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
-	if err := h.Publisher.Publish(ctx, req.ChannelValue, payload); err != nil {
+	if err := h.Publisher.Publish(ctx, email, payload); err != nil {
 		http.Error(w, "failed to publish event: "+err.Error(), http.StatusInternalServerError)
 		return
 	}

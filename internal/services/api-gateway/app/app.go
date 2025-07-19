@@ -34,7 +34,7 @@ func Run() error {
 	if err != nil {
 		log.Fatalf("failed to init WeatherHandler: %v", err)
 	}
-
+	
 	r.Route("/api", func(r chi.Router) {
 		routes.RegisterRoutes(r, weatherHandler, subscribeHandler)
 	})
