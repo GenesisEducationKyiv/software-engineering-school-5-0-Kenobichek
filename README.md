@@ -3,14 +3,15 @@ Weather Subscription API – A simple API that lets users subscribe to weather u
 
 ---
 
-### Build
+## Quick Start
 
-```shell script
-docker-compose up --build      # compiles the project and starts required services
+To start all microservices and Kafka, simply run:
+
+```bash
+./run_all.sh
 ```
 
-
-(The compiled binaries live inside the container image; adjust the compose file if you need to mount or copy them out.)
+This script will automatically start all required containers and display logs for all services.
 
 ---
 
