@@ -3,16 +3,12 @@ package handlers
 import (
 	"context"
 	"log"
-	"subscription-service/domain"
-	"subscription-service/infrastructure"
-	"subscription-service/repository"
+	"subscription-service/internal/domain"
+	"subscription-service/internal/infrastructure"
+	"subscription-service/internal/repository"
 
 	"github.com/google/uuid"
 )
-
-type commandHandler interface {
-	Handle(ctx context.Context, cmd domain.SubscriptionCommand) error
-}
 
 type SubscribeHandler struct {
 	repo      *repository.Repository
@@ -98,6 +94,10 @@ func (h *UnsubscribeHandler) Handle(ctx context.Context, cmd domain.Subscription
 	}
 	log.Printf("[UnsubscribeHandler] Unsubscribe command handled successfully for token=%s", cmd.Token)
 	return nil
+}
+
+type commandHandler interface {
+	Handle(ctx context.Context, cmd domain.SubscriptionCommand) error
 }
 
 type Dispatcher struct {

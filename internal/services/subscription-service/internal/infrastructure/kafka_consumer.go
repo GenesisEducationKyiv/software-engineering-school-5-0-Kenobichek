@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"log"
 
-	"subscription-service/domain"
+	"subscription-service/internal/domain"
 
 	"github.com/segmentio/kafka-go"
 )

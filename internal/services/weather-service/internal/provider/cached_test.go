@@ -52,8 +52,14 @@ func TestCachedWeatherProvider_CacheMiss(t *testing.T) {
 	cached := provider.NewCachedWeatherProvider(prov, cache)
 
 	result, err := cached.GetWeatherByCity(context.Background(), "Kyiv")
-	cached.Close() // дождаться завершения кэширования
-	if err != nil || result.City != "Kyiv" || !cache.hit {
-		t.Errorf("expected cache miss logic, got: %+v, err: %v, cache.hit: %v", result, err, cache.hit)
+	if err != nil || result.City != "Kyiv" {
+		t.Errorf("expected cache miss logic, got: %+v, err: %v", result, err)
+	}
+	err = cached.Close()
+	if err != nil {
+		t.Errorf("failed to close cache: %v", err)
+	}
+	if !cache.hit {
+		t.Errorf("expected cache to be set after miss, but cache.hit is false")
 	}
 }

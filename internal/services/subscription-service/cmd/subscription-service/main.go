@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"log"
-	"subscription-service/app"
+	"subscription-service/internal/app"
 )
 
 func main() {

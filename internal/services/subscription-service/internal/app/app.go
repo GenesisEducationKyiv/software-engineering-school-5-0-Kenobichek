@@ -8,10 +8,10 @@ import (
 	"syscall"
 	"time"
 
-	"subscription-service/config"
-	"subscription-service/handlers"
-	"subscription-service/infrastructure"
-	"subscription-service/repository"
+	"subscription-service/internal/config"
+	"subscription-service/internal/handlers"
+	"subscription-service/internal/infrastructure"
+	"subscription-service/internal/repository"
 )
 
 func Run(ctx context.Context) error {
