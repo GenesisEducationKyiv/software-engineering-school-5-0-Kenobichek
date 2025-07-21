@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -28,8 +29,8 @@ func New(db *sql.DB) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) CreateSubscription(sub *Subscription) error {
-	_, err := r.db.Exec(`
+func (r *Repository) CreateSubscription(ctx context.Context, sub *Subscription) error {
+	_, err := r.db.ExecContext(ctx, `
 		INSERT INTO subscriptions 
 		(channel_type, channel_value, city, frequency_minutes, token, next_notified_at)
 		VALUES ($1, $2, $3, $4, $5, NOW() + ($6 * interval '1 minute'))`,
@@ -42,8 +43,8 @@ func (r *Repository) CreateSubscription(sub *Subscription) error {
 	return err
 }
 
-func (r *Repository) ConfirmByToken(token string) error {
-	result, err := r.db.Exec(`
+func (r *Repository) ConfirmByToken(ctx context.Context, token string) error {
+	result, err := r.db.ExecContext(ctx, `
 		UPDATE subscriptions
 		SET confirmed = TRUE
 		WHERE token = $1`, token)
@@ -60,8 +61,8 @@ func (r *Repository) ConfirmByToken(token string) error {
 	return nil
 }
 
-func (r *Repository) UnsubscribeByToken(token string) error {
-	result, err := r.db.Exec(`DELETE FROM subscriptions WHERE token = $1`, token)
+func (r *Repository) UnsubscribeByToken(ctx context.Context, token string) error {
+	result, err := r.db.ExecContext(ctx, `DELETE FROM subscriptions WHERE token = $1`, token)
 	if err != nil {
 		return errors.New("failed delete subscription")
 	}
@@ -75,8 +76,8 @@ func (r *Repository) UnsubscribeByToken(token string) error {
 	return nil
 }
 
-func (r *Repository) GetDueSubscriptions() []Subscription {
-	rows, err := r.db.Query(
+func (r *Repository) GetDueSubscriptions(ctx context.Context) []Subscription {
+	rows, err := r.db.QueryContext(ctx,
 		`SELECT id, channel_type, channel_value, city, frequency_minutes
 		 FROM subscriptions
 		 WHERE confirmed = TRUE AND next_notified_at <= NOW()`,
@@ -98,16 +99,16 @@ func (r *Repository) GetDueSubscriptions() []Subscription {
 	return subs
 }
 
-func (r *Repository) UpdateNextNotification(id int, next time.Time) error {
-	_, err := r.db.Exec(`UPDATE subscriptions SET next_notified_at = $1 WHERE id = $2`, next, id)
+func (r *Repository) UpdateNextNotification(ctx context.Context, id int, next time.Time) error {
+	_, err := r.db.ExecContext(ctx, `UPDATE subscriptions SET next_notified_at = $1 WHERE id = $2`, next, id)
 	if err != nil {
 		return fmt.Errorf("failed to update next_notified_at for id %d: %w", id, err)
 	}
 	return nil
 }
 
-func (r *Repository) GetSubscriptionByToken(token string) (*Subscription, error) {
-	row := r.db.QueryRow(`
+func (r *Repository) GetSubscriptionByToken(ctx context.Context, token string) (*Subscription, error) {
+	row := r.db.QueryRowContext(ctx, `
 		SELECT id, channel_type, channel_value, city, frequency_minutes, confirmed, token, next_notified_at, created_at
 		FROM subscriptions
 		WHERE token = $1
