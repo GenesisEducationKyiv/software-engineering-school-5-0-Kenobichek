@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"internal/services/weather-service/domain"
+	"internal/services/weather-service/internal/domain"
 )
 
 type weatherProviderManager interface {

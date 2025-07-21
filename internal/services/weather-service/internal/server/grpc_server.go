@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net"
 
+	"internal/services/weather-service/internal/provider"
 	"internal/services/weather-service/proto"
-	"internal/services/weather-service/provider"
 
 	"google.golang.org/grpc"
 )
@@ -36,7 +36,8 @@ func (s *WeatherGRPCServer) GetWeather(ctx context.Context, req *proto.WeatherRe
 }
 
 func RunGRPCServer(address string, provider *provider.CachedWeatherProvider) error {
-	lis, err := net.Listen("tcp", address)
+	var lc net.ListenConfig
+	lis, err := lc.Listen(context.Background(), "tcp", address)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %w", err)
 	}

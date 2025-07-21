@@ -1,7 +1,7 @@
 package main
 
 import (
-	"internal/services/weather-service/app"
+	"internal/services/weather-service/internal/app"
 	"log"
 )
 

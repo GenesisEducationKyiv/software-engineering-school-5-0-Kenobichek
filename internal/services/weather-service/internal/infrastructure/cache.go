@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"internal/services/weather-service/domain"
+	"internal/services/weather-service/internal/domain"
 
 	"github.com/redis/go-redis/v9"
 )

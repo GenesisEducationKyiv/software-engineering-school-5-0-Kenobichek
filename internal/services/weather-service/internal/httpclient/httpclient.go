@@ -1,4 +1,4 @@
-package internalhttpclient
+package httpclient
 
 import (
 	"net"

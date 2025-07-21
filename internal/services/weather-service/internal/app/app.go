@@ -5,10 +5,10 @@ import (
 	"log"
 
 	"internal/services/weather-service/config"
-	"internal/services/weather-service/infrastructure"
-	"internal/services/weather-service/internalhttpclient"
-	"internal/services/weather-service/provider"
-	"internal/services/weather-service/server"
+	"internal/services/weather-service/internal/httpclient"
+	"internal/services/weather-service/internal/infrastructure"
+	"internal/services/weather-service/internal/provider"
+	"internal/services/weather-service/internal/server"
 )
 
 func Run() error {
@@ -28,7 +28,7 @@ func Run() error {
 		}
 	}()
 
-	httpClient := internalhttpclient.New()
+	httpClient := httpclient.New()
 
 	geo := infrastructure.NewGeocodingService(httpClient, cfg.OpenWeather.GeocodingAPIURL, cfg.OpenWeather.APIKey)
 	openWeather := infrastructure.NewOpenWeatherAPI(httpClient, cfg.OpenWeather.WeatherAPIURL, cfg.OpenWeather.APIKey)

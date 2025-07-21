@@ -2,7 +2,7 @@ package provider
 
 import (
 	"context"
-	"internal/services/weather-service/domain"
+	"internal/services/weather-service/internal/domain"
 )
 
 type weatherAPIManager interface {

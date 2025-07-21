@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"internal/services/weather-service/domain"
+	"internal/services/weather-service/internal/domain"
 )
 
 type GeocodingService struct {
