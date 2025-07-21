@@ -6,9 +6,9 @@ import (
 )
 
 func main() {
-	log.Println("api-gateway starting...")
+	log.Println("Starting API gateway…")
 	if err := app.Run(); err != nil {
 		log.Fatalf("api-gateway exited with error: %v", err)
 	}
-	log.Println("api-gateway stopped")
+	log.Println("API gateway stopped")
 }

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
+	"time"
 
 	"internal/services/weather-service/domain"
 )
@@ -23,6 +25,7 @@ type CachedWeatherProvider struct {
 	provider       weatherProviderManager
 	cache          weatherCacheManager
 	eventPublisher eventPublishingManager
+	wg             sync.WaitGroup
 }
 
 func NewCachedWeatherProvider(provider weatherProviderManager, cache weatherCacheManager) *CachedWeatherProvider {
@@ -59,8 +62,12 @@ func (c *CachedWeatherProvider) GetWeatherByCity(ctx context.Context, city strin
 		return domain.Metrics{}, fmt.Errorf("failed to get weather from provider: %w", err)
 	}
 
+	c.wg.Add(1)
 	go func() {
-		if err := c.cache.Set(context.Background(), city, metrics); err != nil {
+		defer c.wg.Done()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := c.cache.Set(ctx, city, metrics); err != nil {
 			log.Printf("Failed to cache weather data for city %s: %v", city, err)
 		} else if c.eventPublisher != nil {
 			if err := c.eventPublisher.PublishWeatherUpdated(city, metrics); err != nil {
@@ -70,4 +77,9 @@ func (c *CachedWeatherProvider) GetWeatherByCity(ctx context.Context, city strin
 	}()
 
 	return metrics, nil
+}
+
+func (c *CachedWeatherProvider) Close() error {
+	c.wg.Wait()
+	return c.cache.Close()
 }

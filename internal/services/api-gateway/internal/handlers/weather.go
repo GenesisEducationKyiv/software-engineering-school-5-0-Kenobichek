@@ -35,8 +35,8 @@ func NewWeatherHandler(grpcAddr string) (*WeatherHandler, error) {
 func (h *WeatherHandler) WeatherProxyHandler(w http.ResponseWriter, r *http.Request) {
 	city := r.URL.Query().Get("city")
 	log.Printf("[WeatherProxyHandler] incoming request: %s %s, city=%s", r.Method, r.URL.Path, city)
-	if city == "" {
-		http.Error(w, "city parameter is required", http.StatusBadRequest)
+	if err := validateWeatherParams(city); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		log.Printf("[WeatherProxyHandler] missing city parameter")
 		return
 	}
