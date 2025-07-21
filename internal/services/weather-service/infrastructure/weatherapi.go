@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -36,7 +37,11 @@ func (w *WeatherAPIProvider) GetWeather(ctx context.Context, city string) (domai
 	if err != nil {
 		return domain.Metrics{}, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("failed to close response body: %v", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return domain.Metrics{}, fmt.Errorf("API returned status code: %d", resp.StatusCode)

@@ -35,7 +35,11 @@ func (c *KafkaConsumer) consumeTopic(ctx context.Context, topic string) {
 		Topic:   topic,
 		GroupID: "notification-service",
 	})
-	defer r.Close()
+	defer func() {
+		if err := r.Close(); err != nil {
+			log.Printf("failed to close kafka reader: %v", err)
+		}
+	}()
 	for {
 		m, err := r.ReadMessage(ctx)
 		if err != nil {

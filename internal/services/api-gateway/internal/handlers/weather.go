@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
 	"time"
 
@@ -18,9 +19,15 @@ type WeatherHandler struct {
 
 func NewWeatherHandler(grpcAddr string) (*WeatherHandler, error) {
 	log.Printf("[WeatherHandler] initializing gRPC client to %s", grpcAddr)
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	conn, err := grpc.DialContext(ctx, grpcAddr, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.Dial(
+		grpcAddr,
+		grpc.WithInsecure(),
+		grpc.WithBlock(),
+		grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
+			var d net.Dialer
+			return d.DialContext(ctx, "tcp", addr)
+		}),
+	)
 	if err != nil {
 		log.Printf("[WeatherHandler] failed to dial gRPC at %s: %v", grpcAddr, err)
 		return nil, err

@@ -20,8 +20,8 @@ type ServerConfig struct {
 
 type OpenWeatherConfig struct {
 	APIKey          string `envconfig:"OPENWEATHERMAP_API_KEY" required:"true"`
-	GeocodingAPIURL string `envconfig:"GEOCODING_API_URL" required:"true" default:"https://api.openweathermap.org/geo/1.0/direct"`
-	WeatherAPIURL   string `envconfig:"OPENWEATHERMAP_API_URL" required:"true" default:"https://api.openweathermap.org/data/2.5/weather"`
+	GeocodingAPIURL string `envconfig:"GEOCODING_API_URL" required:"true"`
+	WeatherAPIURL   string `envconfig:"OPENWEATHERMAP_API_URL" required:"true"`
 }
 
 type WeatherAPIConfig struct {

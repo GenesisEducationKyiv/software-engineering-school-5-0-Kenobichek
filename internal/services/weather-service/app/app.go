@@ -22,7 +22,11 @@ func Run() error {
 	if err != nil {
 		return err
 	}
-	defer cache.Close()
+	defer func() {
+		if err := cache.Close(); err != nil {
+			log.Printf("failed to close cache: %v", err)
+		}
+	}()
 
 	httpClient := internalhttpclient.New()
 

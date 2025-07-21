@@ -32,7 +32,11 @@ func NewCachedWeatherProvider(provider weatherProviderManager, cache weatherCach
 	}
 }
 
-func NewCachedWeatherProviderWithEvents(provider weatherProviderManager, cache weatherCacheManager, eventPublisher eventPublishingManager) *CachedWeatherProvider {
+func NewCachedWeatherProviderWithEvents(
+	provider weatherProviderManager,
+	cache weatherCacheManager,
+	eventPublisher eventPublishingManager,
+) *CachedWeatherProvider {
 	return &CachedWeatherProvider{
 		provider:       provider,
 		cache:          cache,

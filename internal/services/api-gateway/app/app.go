@@ -26,15 +26,22 @@ func Run() error {
 	r := chi.NewRouter()
 
 	publisher := kafka.NewPublisher(cfg.KafkaBrokers, cfg.KafkaTopic)
-	defer publisher.Close()
 
 	subscribeHandler := handlers.NewSubscribeHandler(publisher)
 
 	weatherHandler, err := handlers.NewWeatherHandler(cfg.WeatherServiceAddr)
 	if err != nil {
+		if cerr := publisher.Close(); cerr != nil {
+			log.Printf("failed to close publisher: %v", cerr)
+		}
 		log.Fatalf("failed to init WeatherHandler: %v", err)
 	}
-	
+	defer func() {
+		if err := publisher.Close(); err != nil {
+			log.Printf("failed to close publisher: %v", err)
+		}
+	}()
+
 	r.Route("/api", func(r chi.Router) {
 		routes.RegisterRoutes(r, weatherHandler, subscribeHandler)
 	})
@@ -42,8 +49,9 @@ func Run() error {
 	addr := ":" + cfg.Port
 
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: r,
+		Addr:              addr,
+		Handler:           r,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	stop := make(chan os.Signal, 1)

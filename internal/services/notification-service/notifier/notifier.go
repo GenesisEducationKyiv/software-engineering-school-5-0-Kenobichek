@@ -21,8 +21,8 @@ type EventPublisherManager interface {
 }
 
 type Service struct {
-	notifier       EmailNotifierManager
-	templates      TemplateRepositoryManager
+	notifier  EmailNotifierManager
+	templates TemplateRepositoryManager
 }
 
 func NewService(
@@ -30,8 +30,8 @@ func NewService(
 	templates TemplateRepositoryManager,
 ) *Service {
 	return &Service{
-		notifier:       notifier,
-		templates:      templates,
+		notifier:  notifier,
+		templates: templates,
 	}
 }
 
@@ -61,7 +61,7 @@ func (s *Service) SendWeatherUpdate(
 	message := strings.ReplaceAll(tpl.Message, "{{ city }}", metrics.City)
 	message = strings.ReplaceAll(message, "{{ description }}", metrics.Description)
 	message = strings.ReplaceAll(message, "{{ temperature }}", fmt.Sprintf("%.1f", metrics.Temperature))
-	message = strings.ReplaceAll(message, "{{ humidity }}", strconv.Itoa(int(metrics.Humidity)))
+	message = strings.ReplaceAll(message, "{{ humidity }}", strconv.Itoa(metrics.Humidity))
 	subject := strings.ReplaceAll(tpl.Subject, "{{ city }}", metrics.City)
 	return s.notifier.Send(recipient, message, subject)
 }

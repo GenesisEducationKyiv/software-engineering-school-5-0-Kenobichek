@@ -8,6 +8,8 @@ import (
 
 	"api-gateway/internal/kafka"
 
+	"log"
+
 	"github.com/go-chi/chi/v5"
 )
 
@@ -66,7 +68,9 @@ func (h *SubscribeHandler) Subscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusAccepted)
-	w.Write([]byte("Subscription event published"))
+	if _, err := w.Write([]byte("Subscription event published")); err != nil {
+		log.Printf("failed to write response: %v", err)
+	}
 }
 
 func (h *SubscribeHandler) ConfirmSubscription(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +91,9 @@ func (h *SubscribeHandler) ConfirmSubscription(w http.ResponseWriter, r *http.Re
 		return
 	}
 	w.WriteHeader(http.StatusAccepted)
-	w.Write([]byte("Confirm event published"))
+	if _, err := w.Write([]byte("Confirm event published")); err != nil {
+		log.Printf("failed to write response: %v", err)
+	}
 }
 
 func (h *SubscribeHandler) Unsubscribe(w http.ResponseWriter, r *http.Request) {
@@ -108,5 +114,7 @@ func (h *SubscribeHandler) Unsubscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusAccepted)
-	w.Write([]byte("Unsubscribe event published"))
+	if _, err := w.Write([]byte("Unsubscribe event published")); err != nil {
+		log.Printf("failed to write response: %v", err)
+	}
 }

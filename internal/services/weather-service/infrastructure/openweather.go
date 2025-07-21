@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -36,7 +37,11 @@ func (g *GeocodingService) GetCoordinates(ctx context.Context, city string) (dom
 	if err != nil {
 		return domain.Coordinates{}, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("failed to close response body: %v", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return domain.Coordinates{}, fmt.Errorf("API returned status code: %d", resp.StatusCode)
@@ -80,7 +85,11 @@ func (w *OpenWeatherAPI) GetWeather(ctx context.Context, coords domain.Coordinat
 	if err != nil {
 		return domain.Metrics{}, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("failed to close response body: %v", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return domain.Metrics{}, fmt.Errorf("API returned status code: %d", resp.StatusCode)

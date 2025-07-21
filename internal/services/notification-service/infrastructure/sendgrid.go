@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/sendgrid/rest"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
@@ -42,7 +43,10 @@ func (s *SendgridNotifier) Send(to, message, subject string) error {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 	if resp.StatusCode >= 300 {
-		fmt.Printf("[SendgridNotifier] Sendgrid returned error status code %d for %s. Response body: %s\n", resp.StatusCode, to, resp.Body)
+		log.Printf(
+			"[SendgridNotifier] Sendgrid returned error status code %d for %s. Response body: %s",
+			resp.StatusCode, to, resp.Body,
+		)
 		return fmt.Errorf("sendgrid returned error status code %d", resp.StatusCode)
 	}
 

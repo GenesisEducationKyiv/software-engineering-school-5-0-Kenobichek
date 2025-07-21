@@ -15,7 +15,8 @@ func NewTemplateRepository() *TemplateRepository {
 			},
 			"weather_update": {
 				Subject: "Weather update for {{ city }}",
-				Message: "Current weather in {{ city }}: {{ description }}. Temperature: {{ temperature }}°C, Humidity: {{ humidity }}%.",
+				Message: "Current weather in {{ city }}: {{ description }}. " +
+					"Temperature: {{ temperature }}°C, Humidity: {{ humidity }}%.",
 			},
 			"unsubscribe": {
 				Subject: "You have unsubscribed from weather alerts for {{ city }}",
