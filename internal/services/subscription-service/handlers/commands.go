@@ -61,15 +61,6 @@ func (h *ConfirmHandler) Handle(cmd domain.SubscriptionCommand) error {
 		log.Printf("[ConfirmHandler] Failed to confirm subscription: %v", err)
 		return err
 	}
-	log.Printf("[ConfirmHandler] Subscription confirmed: %s", cmd.Token)
-	event := domain.SubscriptionEvent{
-		EventType: "subscription.confirmed",
-		Token:     cmd.Token,
-	}
-	log.Printf("[ConfirmHandler] Publishing event: %+v", event)
-	if err := h.publisher.PublishWithTopic(context.Background(), "subscription.confirmed", event); err != nil {
-		log.Printf("[ConfirmHandler] Failed to publish event: %v", err)
-	}
 	log.Printf("[ConfirmHandler] Confirm command handled successfully for token=%s", cmd.Token)
 	return nil
 }

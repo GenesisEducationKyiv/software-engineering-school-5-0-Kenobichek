@@ -11,8 +11,8 @@ func RegisterRoutes(r chi.Router, weatherHandler *handlers.WeatherHandler, subsc
 	r.Get("/weather", weatherHandler.WeatherProxyHandler)
 
 	r.Post("/subscribe", subscribeHandler.Subscribe)
-	r.Post("/confirm", subscribeHandler.ConfirmSubscription)
-	r.Post("/unsubscribe", subscribeHandler.Unsubscribe)
+	r.Get("/confirm/{token}", subscribeHandler.ConfirmSubscription)
+	r.Get("/unsubscribe/{token}", subscribeHandler.Unsubscribe)
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)

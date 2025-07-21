@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"api-gateway/proto"
+	"api-gateway/internal/proto"
 
 	"google.golang.org/grpc"
 )

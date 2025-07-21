@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"api-gateway/internal/kafka"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type SubscriptionCommand struct {
@@ -68,21 +70,19 @@ func (h *SubscribeHandler) Subscribe(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SubscribeHandler) ConfirmSubscription(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Token string `json:"token"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+	token := chi.URLParam(r, "token")
+	if token == "" {
+		http.Error(w, "token is required", http.StatusBadRequest)
 		return
 	}
 	cmd := SubscriptionCommand{
 		Command: "confirm",
-		Token:   req.Token,
+		Token:   token,
 	}
 	payload, _ := json.Marshal(cmd)
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
-	if err := h.Publisher.Publish(ctx, req.Token, payload); err != nil {
+	if err := h.Publisher.Publish(ctx, token, payload); err != nil {
 		http.Error(w, "failed to publish confirm event: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -91,21 +91,19 @@ func (h *SubscribeHandler) ConfirmSubscription(w http.ResponseWriter, r *http.Re
 }
 
 func (h *SubscribeHandler) Unsubscribe(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Token string `json:"token"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+	token := chi.URLParam(r, "token")
+	if token == "" {
+		http.Error(w, "token is required", http.StatusBadRequest)
 		return
 	}
 	cmd := SubscriptionCommand{
 		Command: "unsubscribe",
-		Token:   req.Token,
+		Token:   token,
 	}
 	payload, _ := json.Marshal(cmd)
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
-	if err := h.Publisher.Publish(ctx, req.Token, payload); err != nil {
+	if err := h.Publisher.Publish(ctx, token, payload); err != nil {
 		http.Error(w, "failed to publish unsubscribe event: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
