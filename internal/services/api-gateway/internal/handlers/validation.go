@@ -2,16 +2,21 @@ package handlers
 
 import (
 	"fmt"
-	"strings"
+	"regexp"
 )
 
 func validateSubscriptionParams(email, city, frequency string) error {
 	if email == "" {
 		return fmt.Errorf("email is required")
 	}
-	if !strings.Contains(email, "@") {
+	emailRegex := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
+	if matched, _ := regexp.MatchString(emailRegex, email); !matched {
 		return fmt.Errorf("invalid email format")
 	}
+
+	if len(city) > 100 {
+		return fmt.Errorf("city name too long")
+	}	
 	if city == "" {
 		return fmt.Errorf("city is required")
 	}

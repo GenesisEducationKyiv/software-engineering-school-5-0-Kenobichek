@@ -22,7 +22,7 @@ func NewSubscribeHandler(publisher *kafka.Publisher) *SubscribeHandler {
 }
 
 func (h *SubscribeHandler) Subscribe(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
+	if err := r.ParseMultipartForm(1 << 20); err != nil {
 		http.Error(w, "invalid multipart form", http.StatusBadRequest)
 		return
 	}
@@ -59,7 +59,8 @@ func (h *SubscribeHandler) Subscribe(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 	if err := h.Publisher.Publish(ctx, email, payload); err != nil {
-		http.Error(w, "failed to publish event: "+err.Error(), http.StatusInternalServerError)
+		log.Printf("failed to publish event: %v", err)
+		http.Error(w, "failed to process subscription request", http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusAccepted)

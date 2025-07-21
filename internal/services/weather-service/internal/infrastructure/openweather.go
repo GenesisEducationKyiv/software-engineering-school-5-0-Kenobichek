@@ -103,6 +103,7 @@ func (w *OpenWeatherAPI) GetWeather(ctx context.Context, coords domain.Coordinat
 		Weather []struct {
 			Description string `json:"description"`
 		} `json:"weather"`
+		Name string `json:"name"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
@@ -117,5 +118,6 @@ func (w *OpenWeatherAPI) GetWeather(ctx context.Context, coords domain.Coordinat
 		Temperature: data.Main.Temperature,
 		Humidity:    data.Main.Humidity,
 		Description: data.Weather[0].Description,
+		City:        data.Name,
 	}, nil
 }
