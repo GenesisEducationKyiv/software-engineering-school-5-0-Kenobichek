@@ -2,9 +2,9 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-cmd = "go build -o subscription-service ./cmd/subscription-service"
-bin = "subscription-service"
-run = "./subscription-service"
+cmd = "go build -o tmp/subscription-service ./cmd/subscription-service"
+bin = "tmp/subscription-service"
+run = "./tmp/subscription-service"
 include_ext = ["go", "tpl", "tmpl", "html"]
 exclude_dir = ["assets", "tmp", "vendor"]
 delay = 1000

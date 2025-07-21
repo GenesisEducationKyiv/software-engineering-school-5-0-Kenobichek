@@ -35,7 +35,7 @@ func (h *SubscribeHandler) Handle(cmd domain.SubscriptionCommand) error {
 	}
 	log.Printf("[SubscribeHandler] Subscription created: %+v", sub)
 	event := domain.SubscriptionEvent{
-		EventType:        "subscription.created",
+		EventType:        "subscription.confirmed",
 		ChannelType:      sub.ChannelType,
 		ChannelValue:     sub.ChannelValue,
 		City:             sub.City,
@@ -43,7 +43,7 @@ func (h *SubscribeHandler) Handle(cmd domain.SubscriptionCommand) error {
 		Token:            sub.Token,
 	}
 	log.Printf("[SubscribeHandler] Publishing event: %+v", event)
-	if err := h.publisher.PublishWithTopic(context.Background(), "subscription.created", event); err != nil {
+	if err := h.publisher.PublishWithTopic(context.Background(), "subscription.confirmed", event); err != nil {
 		log.Printf("[SubscribeHandler] Failed to publish event: %v", err)
 	}
 	log.Printf("[SubscribeHandler] Subscribe command handled successfully for token=%s", sub.Token)

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"notification-service/domain"
 )
@@ -24,18 +23,15 @@ type EventPublisherManager interface {
 type Service struct {
 	notifier       EmailNotifierManager
 	templates      TemplateRepositoryManager
-	eventPublisher EventPublisherManager
 }
 
 func NewService(
 	notifier EmailNotifierManager,
 	templates TemplateRepositoryManager,
-	eventPublisher EventPublisherManager,
 ) *Service {
 	return &Service{
 		notifier:       notifier,
 		templates:      templates,
-		eventPublisher: eventPublisher,
 	}
 }
 
@@ -67,18 +63,7 @@ func (s *Service) SendWeatherUpdate(
 	message = strings.ReplaceAll(message, "{{ temperature }}", fmt.Sprintf("%.1f", metrics.Temperature))
 	message = strings.ReplaceAll(message, "{{ humidity }}", strconv.Itoa(int(metrics.Humidity)))
 	subject := strings.ReplaceAll(tpl.Subject, "{{ city }}", metrics.City)
-	err = s.notifier.Send(recipient, message, subject)
-	if err == nil && s.eventPublisher != nil {
-		event := domain.NotificationSentEvent{
-			NotificationID: "", // TODO: генерировать ID
-			ChannelType:    channel,
-			Recipient:      recipient,
-			Status:         "sent",
-			SentAt:         time.Now().Unix(),
-		}
-		_ = s.eventPublisher.PublishNotificationSent(event)
-	}
-	return err
+	return s.notifier.Send(recipient, message, subject)
 }
 
 func (s *Service) SendUnsubscribe(

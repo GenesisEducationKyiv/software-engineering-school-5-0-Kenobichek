@@ -6,10 +6,8 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Копируем остальные исходники
 COPY . .
 
-# Сборка бинарника
 RUN CGO_ENABLED=0 GOOS=linux go build -o notification-service ./cmd/notification-service
 
 FROM alpine:3.19
