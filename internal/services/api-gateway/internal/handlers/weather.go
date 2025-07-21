@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	"net"
 	"net/http"
 	"time"
 
 	"api-gateway/internal/proto"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type WeatherHandler struct {
@@ -19,14 +19,9 @@ type WeatherHandler struct {
 
 func NewWeatherHandler(grpcAddr string) (*WeatherHandler, error) {
 	log.Printf("[WeatherHandler] initializing gRPC client to %s", grpcAddr)
-	conn, err := grpc.Dial(
+	conn, err := grpc.NewClient(
 		grpcAddr,
-		grpc.WithInsecure(),
-		grpc.WithBlock(),
-		grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
-			var d net.Dialer
-			return d.DialContext(ctx, "tcp", addr)
-		}),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
 		log.Printf("[WeatherHandler] failed to dial gRPC at %s: %v", grpcAddr, err)
