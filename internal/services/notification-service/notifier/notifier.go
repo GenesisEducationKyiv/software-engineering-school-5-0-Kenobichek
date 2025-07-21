@@ -76,6 +76,7 @@ func (s *Service) SendUnsubscribe(
 		return fmt.Errorf("failed to load template: %v", err)
 	}
 	message := strings.ReplaceAll(tpl.Message, "{{ city }}", city)
-	subject := tpl.Subject
+	subject := strings.ReplaceAll(tpl.Subject, "{{ city }}", city)
+
 	return s.notifier.Send(recipient, message, subject)
 }

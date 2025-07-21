@@ -71,6 +71,13 @@ type UnsubscribeHandler struct {
 }
 
 func (h *UnsubscribeHandler) Handle(cmd domain.SubscriptionCommand) error {
+
+	sub, err := h.repo.GetSubscriptionByToken(cmd.Token)
+	if err != nil {
+		log.Printf("[UnsubscribeHandler] Failed to get subscription by token: %v", err)
+		return err
+	}
+
 	log.Printf("[UnsubscribeHandler] Handling unsubscribe command: %+v", cmd)
 	if err := h.repo.UnsubscribeByToken(cmd.Token); err != nil {
 		log.Printf("[UnsubscribeHandler] Failed to unsubscribe: %v", err)
@@ -80,6 +87,10 @@ func (h *UnsubscribeHandler) Handle(cmd domain.SubscriptionCommand) error {
 	event := domain.SubscriptionEvent{
 		EventType: "subscription.cancelled",
 		Token:     cmd.Token,
+		ChannelType: sub.ChannelType,
+		ChannelValue: sub.ChannelValue,
+		City: sub.City,
+		FrequencyMinutes: sub.FrequencyMinutes,
 	}
 	log.Printf("[UnsubscribeHandler] Publishing event: %+v", event)
 	if err := h.publisher.PublishWithTopic(context.Background(), "subscription.cancelled", event); err != nil {

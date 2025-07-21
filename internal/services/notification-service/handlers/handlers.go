@@ -19,7 +19,7 @@ type WeatherUpdateEvent struct {
 	City      string                `json:"city"`
 	Metrics   domain.WeatherMetrics `json:"metrics"`
 	UpdatedAt string                `json:"updated_at"`
-	Email     string                `json:"email"`
+	Email     string                `json:"channel_value"`
 }
 
 type SubscriptionConfirmedEvent struct {
@@ -28,7 +28,7 @@ type SubscriptionConfirmedEvent struct {
 }
 
 type SubscriptionCancelledEvent struct {
-	Email string `json:"email"`
+	Email string `json:"channel_value"`
 	City  string `json:"city"`
 }
 
