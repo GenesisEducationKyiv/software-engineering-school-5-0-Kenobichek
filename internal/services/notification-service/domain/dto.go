@@ -17,5 +17,5 @@ type WeatherMetrics struct {
 	City        string
 	Description string
 	Temperature float64
-	Humidity    int
+	Humidity    float64
 }

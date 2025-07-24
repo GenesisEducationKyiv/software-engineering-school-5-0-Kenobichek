@@ -25,6 +25,7 @@ type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	Kafka    KafkaConfig
+	WeatherServiceAddr string `envconfig:"WEATHER_SERVICE_ADDR" required:"true" default:"weather-service:8081"`
 }
 
 func (c *Config) GetDatabaseDSN() string {

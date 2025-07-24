@@ -8,11 +8,17 @@ import (
 	"syscall"
 	"time"
 
-	"subscription-service/internal/config"
+	"subscription-service/config"
 	"subscription-service/internal/handlers"
 	"subscription-service/internal/infrastructure"
 	"subscription-service/internal/repository"
+	"subscription-service/internal/jobs"
+	"subscription-service/internal/proto"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
+
 
 func Run(ctx context.Context) error {
 	log.Println("Subscription Service starting...")
@@ -32,10 +38,11 @@ func Run(ctx context.Context) error {
 		}
 	}()
 
-	migrationsPath := "migrations"
+	migrationsPath := "internal/migrations"
 	if _, err := os.Stat(migrationsPath); os.IsNotExist(err) {
 		return err
 	}
+
 	if err := infrastructure.RunMigrations(db, migrationsPath); err != nil {
 		return err
 	}
@@ -59,6 +66,22 @@ func Run(ctx context.Context) error {
 	defer cancel()
 
 	go consumer.Start(ctx)
+
+	grpcAddr := cfg.WeatherServiceAddr
+
+	conn, err := grpc.NewClient(
+		grpcAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Printf("[WeatherHandler] failed to dial gRPC at %s: %v", grpcAddr, err)
+		return err
+	}
+	log.Printf("[WeatherHandler] gRPC connection established to %s", grpcAddr)
+	weatherClient := proto.NewWeatherServiceClient(conn)
+
+	weatherJob := jobs.NewWeatherUpdateJob(repo, publisher, weatherClient)
+	go weatherJob.StartPeriodic(ctx)
 
 	log.Println("Subscription Service is running.")
 

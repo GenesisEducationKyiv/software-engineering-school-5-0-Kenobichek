@@ -16,10 +16,9 @@ func parseEvent[T any](message []byte) (T, error) {
 }
 
 type WeatherUpdateEvent struct {
-	City      string                `json:"city"`
-	Metrics   domain.WeatherMetrics `json:"metrics"`
-	UpdatedAt string                `json:"updated_at"`
-	Email     string                `json:"channel_value"`
+	Metrics   domain.WeatherMetrics	`json:"metrics"`
+	UpdatedAt int64					`json:"updated_at"`
+	Email     string				`json:"channel_value"`
 }
 
 type SubscriptionConfirmedEvent struct {

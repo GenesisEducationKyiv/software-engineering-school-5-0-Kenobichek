@@ -2,7 +2,6 @@ package notifier
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"notification-service/domain"
@@ -61,7 +60,7 @@ func (s *Service) SendWeatherUpdate(
 	message := strings.ReplaceAll(tpl.Message, "{{ city }}", metrics.City)
 	message = strings.ReplaceAll(message, "{{ description }}", metrics.Description)
 	message = strings.ReplaceAll(message, "{{ temperature }}", fmt.Sprintf("%.1f", metrics.Temperature))
-	message = strings.ReplaceAll(message, "{{ humidity }}", strconv.Itoa(metrics.Humidity))
+	message = strings.ReplaceAll(message, "{{ humidity }}", fmt.Sprintf("%.1f", metrics.Humidity))
 	subject := strings.ReplaceAll(tpl.Subject, "{{ city }}", metrics.City)
 	return s.notifier.Send(recipient, message, subject)
 }

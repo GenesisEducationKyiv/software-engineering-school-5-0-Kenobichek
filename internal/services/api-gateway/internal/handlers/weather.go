@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"api-gateway/internal/proto"
+	"api-gateway/proto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

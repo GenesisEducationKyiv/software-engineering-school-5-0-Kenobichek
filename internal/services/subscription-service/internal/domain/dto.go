@@ -17,3 +17,16 @@ type SubscriptionEvent struct {
 	FrequencyMinutes int    `json:"frequency_minutes,omitempty"`
 	Token            string `json:"token,omitempty"`
 }
+
+type WeatherMetrics struct {
+	City        string
+	Description string
+	Temperature float64
+	Humidity    float64
+}
+
+type WeatherUpdateEvent struct {
+	Metrics   WeatherMetrics	`json:"metrics"`
+	UpdatedAt int64				`json:"updated_at"`
+	Email     string			`json:"channel_value"`
+}

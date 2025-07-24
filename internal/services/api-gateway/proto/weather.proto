@@ -16,4 +16,5 @@ message WeatherResponse {
   string city = 1;
   string description = 2;
   double temperature = 3;
+  double humidity = 4;
 } 

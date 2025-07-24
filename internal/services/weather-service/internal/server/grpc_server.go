@@ -32,6 +32,7 @@ func (s *WeatherGRPCServer) GetWeather(ctx context.Context, req *proto.WeatherRe
 		City:        metrics.City,
 		Description: metrics.Description,
 		Temperature: metrics.Temperature,
+		Humidity:    metrics.Humidity,
 	}, nil
 }
 
