@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"context"
 	"encoding/json"
+	"sync"
 
 	"github.com/segmentio/kafka-go"
 )
@@ -10,6 +11,7 @@ import (
 type KafkaPublisher struct {
 	brokers []string
 	writers map[string]*kafka.Writer
+	mu      sync.Mutex
 }
 
 func NewKafkaPublisher(brokers []string, _ string) *KafkaPublisher {
@@ -20,6 +22,9 @@ func NewKafkaPublisher(brokers []string, _ string) *KafkaPublisher {
 }
 
 func (p *KafkaPublisher) getWriter(topic string) *kafka.Writer {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	if w, ok := p.writers[topic]; ok {
 		return w
 	}
@@ -29,6 +34,7 @@ func (p *KafkaPublisher) getWriter(topic string) *kafka.Writer {
 		Balancer: &kafka.LeastBytes{},
 	}
 	p.writers[topic] = w
+	p.mu.Unlock()
 	return w
 }
 
@@ -46,11 +52,16 @@ func (p *KafkaPublisher) Publish(ctx context.Context, event interface{}) error {
 }
 
 func (p *KafkaPublisher) Close() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	
 	var firstErr error
 	for _, w := range p.writers {
 		if err := w.Close(); err != nil && firstErr == nil {
 			firstErr = err
 		}
 	}
+
+	p.writers = make(map[string]*kafka.Writer)
 	return firstErr
 }

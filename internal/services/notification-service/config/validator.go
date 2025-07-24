@@ -11,8 +11,14 @@ func validate(cfg *Config) error {
 	if cfg.Server.Port == 0 {
 		errors = append(errors, "PORT is required")
 	}
-	if len(cfg.Kafka.Brokers) == 0 || cfg.Kafka.Brokers[0] == "" {
+	if len(cfg.Kafka.Brokers) == 0 {
 		errors = append(errors, "KAFKA_BROKERS is required")
+	} else {
+		for i, broker := range cfg.Kafka.Brokers {
+			if broker == "" {
+				errors = append(errors, fmt.Sprintf("KAFKA_BROKERS[%d] cannot be empty", i))
+			}
+		}
 	}
 	if cfg.SendGrid.APIKey == "" {
 		errors = append(errors, "SENDGRID_API_KEY is required")

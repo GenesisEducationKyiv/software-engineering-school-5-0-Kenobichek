@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"subscription-service/internal/domain"
@@ -38,7 +39,7 @@ func (h *SubscribeHandler) Handle(ctx context.Context, cmd domain.SubscriptionCo
 
 	if err := h.repo.CreateSubscription(ctx, sub); err != nil {
 		log.Printf("[SubscribeHandler] Failed to create subscription: %v", err)
-		return err
+		return fmt.Errorf("failed to create subscription: %w", err)
 	}
 	log.Printf("[SubscribeHandler] Subscription created: %+v", sub)
 	event := domain.SubscriptionEvent{
@@ -52,6 +53,7 @@ func (h *SubscribeHandler) Handle(ctx context.Context, cmd domain.SubscriptionCo
 	log.Printf("[SubscribeHandler] Publishing event: %+v", event)
 	if err := h.publisher.PublishWithTopic(ctx, "subscription.confirmed", event); err != nil {
 		log.Printf("[SubscribeHandler] Failed to publish event: %v", err)
+		return fmt.Errorf("failed to publish confirmation event: %w", err)
 	}
 	log.Printf("[SubscribeHandler] Subscribe command handled successfully for token=%s", sub.Token)
 	return nil
@@ -66,7 +68,7 @@ func (h *ConfirmHandler) Handle(ctx context.Context, cmd domain.SubscriptionComm
 	log.Printf("[ConfirmHandler] Handling confirm command: %+v", cmd)
 	if err := h.repo.ConfirmByToken(ctx, cmd.Token); err != nil {
 		log.Printf("[ConfirmHandler] Failed to confirm subscription: %v", err)
-		return err
+		return fmt.Errorf("failed to confirm subscription: %w", err)
 	}
 	log.Printf("[ConfirmHandler] Confirm command handled successfully for token=%s", cmd.Token)
 	return nil
@@ -82,13 +84,13 @@ func (h *UnsubscribeHandler) Handle(ctx context.Context, cmd domain.Subscription
 	sub, err := h.repo.GetSubscriptionByToken(ctx, cmd.Token)
 	if err != nil {
 		log.Printf("[UnsubscribeHandler] Failed to get subscription by token: %v", err)
-		return err
+		return fmt.Errorf("failed to get subscription by token '%s': %w", cmd.Token, err)
 	}
 
 	log.Printf("[UnsubscribeHandler] Handling unsubscribe command: %+v", cmd)
 	if err := h.repo.UnsubscribeByToken(ctx, cmd.Token); err != nil {
 		log.Printf("[UnsubscribeHandler] Failed to unsubscribe: %v", err)
-		return err
+		return fmt.Errorf("failed to unsubscribe: %w", err)
 	}
 	log.Printf("[UnsubscribeHandler] Unsubscribed: %s", cmd.Token)
 	event := domain.SubscriptionEvent{
@@ -102,6 +104,7 @@ func (h *UnsubscribeHandler) Handle(ctx context.Context, cmd domain.Subscription
 	log.Printf("[UnsubscribeHandler] Publishing event: %+v", event)
 	if err := h.publisher.PublishWithTopic(ctx, "subscription.cancelled", event); err != nil {
 		log.Printf("[UnsubscribeHandler] Failed to publish event: %v", err)
+		return fmt.Errorf("failed to publish cancellation event: %w", err)
 	}
 	log.Printf("[UnsubscribeHandler] Unsubscribe command handled successfully for token=%s", cmd.Token)
 	return nil
@@ -125,12 +128,12 @@ func NewDispatcher(repo subscriptionRepositoryManager, publisher eventPublisherM
 	}
 }
 
-func (d *dispatcher) Handle(cmd domain.SubscriptionCommand) error {
+func (d *dispatcher) Handle(ctx context.Context, cmd domain.SubscriptionCommand) error {
 	log.Printf("Received command: %+v", cmd)
 	h, ok := d.handlers[cmd.Command]
 	if !ok {
 		log.Printf("Unknown command: %s", cmd.Command)
-		return nil
+		return fmt.Errorf("unknown command: %s", cmd.Command)
 	}
-	return h.Handle(context.Background(), cmd)
+	return h.Handle(ctx, cmd)
 }

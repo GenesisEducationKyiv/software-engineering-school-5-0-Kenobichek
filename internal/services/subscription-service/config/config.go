@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/kelseyhightower/envconfig"
 )
@@ -43,12 +44,23 @@ func validate(cfg *Config) error {
 	if cfg.Database.Name == "" {
 		errors = append(errors, "DB_NAME is required")
 	}
-	if len(cfg.Kafka.Brokers) == 0 || cfg.Kafka.Brokers[0] == "" {
+	if len(cfg.Kafka.Brokers) == 0 {
 		errors = append(errors, "KAFKA_BROKERS is required")
+	} else {
+		for i, broker := range cfg.Kafka.Brokers {
+			if broker == "" {
+				errors = append(errors, fmt.Sprintf("KAFKA_BROKERS[%d] cannot be empty", i))
+			}
+		}
 	}
-
+	if cfg.Kafka.CommandTopic == "" {
+		errors = append(errors, "KAFKA_COMMAND_TOPIC is required")
+	}
+	if cfg.Kafka.EventTopic == "" {
+		errors = append(errors, "KAFKA_EVENT_TOPIC is required")
+	}
 	if len(errors) > 0 {
-		return fmt.Errorf("config validation errors:\n- %s", errors)
+		return fmt.Errorf("config validation errors:\n- %s", strings.Join(errors, "\n- "))
 	}
 	return nil
 }

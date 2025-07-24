@@ -19,6 +19,7 @@ type DatabaseConfig struct {
 type KafkaConfig struct {
 	Brokers    []string `envconfig:"KAFKA_BROKERS" required:"true" default:"kafka:9092"`
 	EventTopic string   `envconfig:"KAFKA_EVENT_TOPIC" required:"true" default:"events.subscription"`
+	CommandTopic string `envconfig:"KAFKA_COMMAND_TOPIC" required:"true" default:"commands.subscription"`
 }
 
 type Config struct {

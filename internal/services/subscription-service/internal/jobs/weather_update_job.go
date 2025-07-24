@@ -30,17 +30,17 @@ func NewWeatherUpdateJob(
 }
 
 func (j *WeatherUpdateJob) Run(ctx context.Context) {
-	subscriptions := j.repo.GetDueSubscriptions(ctx)
-
+	subscriptions, err := j.repo.GetDueSubscriptions(ctx)
+	if err != nil {
+		log.Printf("[WeatherUpdateJob] failed to get due subscriptions: %v", err)
+		return
+	}
 	for _, s := range subscriptions {
 		weatherResp, err := j.weatherClient.GetWeather(ctx, &proto.WeatherRequest{City: s.City})
 		if err != nil {
 			log.Printf("[WeatherUpdateJob] failed to get weather for city=%s: %v", s.City, err)
 			continue
 		}
-		
-		// updated_at := time.Now().Unix()
-
 		event := domain.WeatherUpdateEvent{
 			Email:       s.ChannelValue,
 			Metrics: domain.WeatherMetrics{
@@ -49,7 +49,7 @@ func (j *WeatherUpdateJob) Run(ctx context.Context) {
 				Temperature: weatherResp.Temperature,
 				Humidity:    weatherResp.Humidity,
 			},
-			UpdatedAt:   time.Now().Unix(),
+			UpdatedAt: time.Now().Unix(),
 		}
 
 		if err := j.publisher.PublishWithTopic(ctx, "weather.updated", event); err != nil {

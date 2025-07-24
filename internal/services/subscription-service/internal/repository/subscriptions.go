@@ -49,14 +49,14 @@ func (r *Repository) ConfirmByToken(ctx context.Context, token string) error {
 		SET confirmed = TRUE
 		WHERE token = $1`, token)
 	if err != nil {
-		return errors.New("failed update subscription confirmation")
+		return fmt.Errorf("failed to update subscription confirmation: %w", err)
 	}
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return errors.New("failed rows affected")
+		return fmt.Errorf("failed to get rows affected after confirmation update: %w", err)
 	}
 	if rows == 0 {
-		return errors.New("not found")
+		return errors.New("subscription not found")
 	}
 	return nil
 }
@@ -64,19 +64,19 @@ func (r *Repository) ConfirmByToken(ctx context.Context, token string) error {
 func (r *Repository) UnsubscribeByToken(ctx context.Context, token string) error {
 	result, err := r.db.ExecContext(ctx, `DELETE FROM subscriptions WHERE token = $1`, token)
 	if err != nil {
-		return errors.New("failed delete subscription")
+		return fmt.Errorf("failed to delete subscription: %w", err)
 	}
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return errors.New("failed rows affected")
+		return fmt.Errorf("failed to get rows affected after deletion: %w", err)
 	}
 	if rows == 0 {
-		return errors.New("not found")
+		return errors.New("subscription not found")
 	}
 	return nil
 }
 
-func (r *Repository) GetDueSubscriptions(ctx context.Context) []Subscription {
+func (r *Repository) GetDueSubscriptions(ctx context.Context) ([]Subscription, error) {
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT id, channel_type, channel_value, city, frequency_minutes
 		 FROM subscriptions
@@ -84,19 +84,19 @@ func (r *Repository) GetDueSubscriptions(ctx context.Context) []Subscription {
 	)
 	var subs []Subscription
 	if err != nil {
-		return subs
+		return subs, fmt.Errorf("failed to get due subscriptions: %w", err)
 	}
 	for rows.Next() {
 		var s Subscription
 		if err := rows.Scan(&s.ID, &s.ChannelType, &s.ChannelValue, &s.City, &s.FrequencyMinutes); err != nil {
-			return subs
+			return subs, fmt.Errorf("failed to scan due subscriptions: %w", err)
 		}
 		subs = append(subs, s)
 	}
 	if err = rows.Err(); err != nil {
-		return subs
+		return subs, fmt.Errorf("failed to get due subscriptions: %w", err)
 	}
-	return subs
+	return subs, nil
 }
 
 func (r *Repository) UpdateNextNotification(ctx context.Context, id int, next time.Time) error {

@@ -10,7 +10,7 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-type CommandHandler func(cmd domain.SubscriptionCommand) error
+type CommandHandler func(ctx context.Context, cmd domain.SubscriptionCommand) error
 
 type KafkaConsumer struct {
 	brokers []string
@@ -52,7 +52,7 @@ func (c *KafkaConsumer) Start(ctx context.Context) {
 			log.Printf("Failed to unmarshal command: %v", err)
 			continue
 		}
-		if err := c.handler(cmd); err != nil {
+		if err := c.handler(ctx, cmd); err != nil {
 			log.Printf("Command handler error: %v", err)
 		}
 	}

@@ -55,14 +55,14 @@ func Run(ctx context.Context) error {
 
 	consumer := infrastructure.NewKafkaConsumer(
 		cfg.Kafka.Brokers,
-		"commands.subscription",
+		cfg.Kafka.CommandTopic,
 		dispatcher.Handle,
 	)
+	go consumer.Start(ctx)
 
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	go consumer.Start(ctx)
 	weatherClient, err := newWeatherClient(cfg.WeatherServiceAddr)
 	if err != nil {
 		return err
