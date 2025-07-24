@@ -7,26 +7,28 @@ import (
 	"notification-service/internal/domain"
 )
 
-type EmailNotifierManager interface {
+const (
+	ConfirmTemplate = "confirm"
+	WeatherUpdateTemplate = "weather_update"
+	UnsubscribeTemplate = "unsubscribe"
+)
+
+type emailNotifierManager interface {
 	Send(to, message, subject string) error
 }
 
-type TemplateRepositoryManager interface {
+type templateRepositoryManager interface {
 	GetTemplateByName(name string) (*domain.MessageTemplate, error)
 }
 
-type EventPublisherManager interface {
-	PublishNotificationSent(event domain.NotificationSentEvent) error
-}
-
 type Service struct {
-	notifier  EmailNotifierManager
-	templates TemplateRepositoryManager
+	notifier  emailNotifierManager
+	templates templateRepositoryManager
 }
 
 func NewService(
-	notifier EmailNotifierManager,
-	templates TemplateRepositoryManager,
+	notifier emailNotifierManager,
+	templates templateRepositoryManager,
 ) *Service {
 	return &Service{
 		notifier:  notifier,
@@ -39,7 +41,7 @@ func (s *Service) SendConfirmation(
 	recipient string,
 	token string,
 ) error {
-	tpl, err := s.templates.GetTemplateByName("confirm")
+	tpl, err := s.templates.GetTemplateByName(ConfirmTemplate)
 	if err != nil {
 		return fmt.Errorf("failed to load template: %v", err)
 	}
@@ -53,15 +55,28 @@ func (s *Service) SendWeatherUpdate(
 	recipient string,
 	metrics domain.WeatherMetrics,
 ) error {
-	tpl, err := s.templates.GetTemplateByName("weather_update")
+	tpl, err := s.templates.GetTemplateByName(WeatherUpdateTemplate)
 	if err != nil {
 		return fmt.Errorf("failed to load template: %v", err)
 	}
-	message := strings.ReplaceAll(tpl.Message, "{{ .City }}", metrics.City)
-	message = strings.ReplaceAll(message, "{{ .Description }}", metrics.Description)
-	message = strings.ReplaceAll(message, "{{ .Temperature }}", fmt.Sprintf("%.1f", metrics.Temperature))
-	message = strings.ReplaceAll(message, "{{ .Humidity }}", fmt.Sprintf("%.1f", metrics.Humidity))
-	subject := strings.ReplaceAll(tpl.Subject, "{{ .City }}", metrics.City)
+	
+	replacements := map[string]string{
+		"{{ .City }}":        metrics.City,
+		"{{ .Description }}": metrics.Description,
+		"{{ .Temperature }}": fmt.Sprintf("%.1f", metrics.Temperature),
+		"{{ .Humidity }}":    fmt.Sprintf("%.1f", metrics.Humidity),
+	}
+			
+	message := tpl.Message
+	subject := tpl.Subject
+	
+	for placeholder, value := range replacements {
+		message = strings.ReplaceAll(message, placeholder, value)
+		if placeholder == "{{ .City }}" {
+			subject = strings.ReplaceAll(subject, placeholder, value)
+		}
+	}
+	
 	return s.notifier.Send(recipient, message, subject)
 }
 
@@ -70,7 +85,7 @@ func (s *Service) SendUnsubscribe(
 	recipient string,
 	city string,
 ) error {
-	tpl, err := s.templates.GetTemplateByName("unsubscribe")
+	tpl, err := s.templates.GetTemplateByName(UnsubscribeTemplate)
 	if err != nil {
 		return fmt.Errorf("failed to load template: %v", err)
 	}

@@ -35,11 +35,11 @@ func (s *SendgridNotifier) Send(to, message, subject string) error {
 	toEmail := mail.NewEmail("", to)
 	m := mail.NewSingleEmail(from, subject, toEmail, message, message)
 
-	fmt.Printf("[SendgridNotifier] Sending email to: %s, subject: %s\n", to, subject)
+	log.Printf("[SendgridNotifier] Sending email to: %s, subject: %s\n", to, subject)
 
 	resp, err := s.client.Send(m)
 	if err != nil {
-		fmt.Printf("[SendgridNotifier] Error sending email to %s: %v\n", to, err)
+		log.Printf("[SendgridNotifier] Error sending email to %s: %v\n", to, err)
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 	if resp.StatusCode >= 300 {
@@ -50,6 +50,6 @@ func (s *SendgridNotifier) Send(to, message, subject string) error {
 		return fmt.Errorf("sendgrid returned error status code %d", resp.StatusCode)
 	}
 
-	fmt.Printf("[SendgridNotifier] Email sent successfully to: %s\n", to)
+	log.Printf("[SendgridNotifier] Email sent successfully to: %s\n", to)
 	return nil
 }

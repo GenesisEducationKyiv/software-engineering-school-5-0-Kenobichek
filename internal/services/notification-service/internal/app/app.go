@@ -47,14 +47,19 @@ func Run(ctx context.Context) error {
 		topics = append(topics, topic)
 	}
 
-	consumer := infrastructure.NewKafkaConsumer(cfg.Kafka.Brokers, topics, "notification-service", func(topic string, message []byte) error {
-		log.Printf("[HANDLER] Topic: %s, Message: %s", topic, string(message))
-		if handler, ok := eventHandlers[topic]; ok {
-			return handler.Handle(message)
-		}
-		log.Printf("No handler found for topic: %s", topic)
-		return nil
-	})
+	consumer := infrastructure.NewKafkaConsumer(
+		cfg.Kafka.Brokers,
+		topics,
+		"notification-service",
+		func(topic string, message []byte) error {
+			log.Printf("[HANDLER] Topic: %s, Message: %s", topic, string(message))
+			if handler, ok := eventHandlers[topic]; ok {
+				return handler.Handle(message)
+			}
+			log.Printf("No handler found for topic: %s", topic)
+			return nil
+		},
+	)
 
 	consumer.Start(ctx)
 
