@@ -1,11 +1,12 @@
-FROM golang:1.23-alpine AS builder
+FROM golang:1.23.0
+
 WORKDIR /app
+
 COPY go.mod go.sum ./
 RUN go mod download
-COPY . .
-RUN go build -o api-gateway ./cmd/api-gateway
 
-FROM alpine:3.19
-WORKDIR /app
-COPY --from=builder /app/api-gateway .
-CMD ["./api-gateway"] 
+COPY . .
+
+RUN go build -o api-gateway ./cmd/api-gateway/main.go
+
+CMD ["go","run","./cmd/api-gateway/main.go"]

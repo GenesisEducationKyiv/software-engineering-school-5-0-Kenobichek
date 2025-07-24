@@ -1,10 +1,12 @@
-FROM golang:1.23-alpine AS builder
-WORKDIR /app
-COPY . .
-RUN go mod download
-RUN go build -o weather-service ./cmd/weather-service
+FROM golang:1.23.0
 
-FROM alpine:3.19
 WORKDIR /app
-COPY --from=builder /app/weather-service .
-CMD ["./weather-service"] 
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN go build -o weather-service ./cmd/weather-service/main.go
+
+CMD ["go","run","./cmd/weather-service/main.go"]
