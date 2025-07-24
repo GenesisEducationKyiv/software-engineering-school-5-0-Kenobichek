@@ -34,7 +34,6 @@ func (p *KafkaPublisher) getWriter(topic string) *kafka.Writer {
 		Balancer: &kafka.LeastBytes{},
 	}
 	p.writers[topic] = w
-	p.mu.Unlock()
 	return w
 }
 
