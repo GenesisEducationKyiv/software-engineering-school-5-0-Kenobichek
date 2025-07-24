@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -27,7 +28,7 @@ func Run(ctx context.Context) error {
 		return errors.New("failed to load config: " + err.Error())
 	}
 
-	log.Printf("Notification Service starting on port %d...", cfg.Server.Port)
+	log.Printf("[APP] Notification Service starting on port %d...", cfg.Server.Port)
 
 	sgClient := sendgrid.NewSendClient(cfg.SendGrid.APIKey)
 	sendgridNotifier := infrastructure.NewSendgridNotifier(sgClient, cfg.SendGrid.SenderName, cfg.SendGrid.SenderEmail)
@@ -47,29 +48,35 @@ func Run(ctx context.Context) error {
 		topics = append(topics, topic)
 	}
 
+	messageHandler := func(ctx context.Context, topic string, message []byte) error {
+		log.Printf("[APP] Topic: %s, Message: %s", topic, string(message))
+		if handler, ok := eventHandlers[topic]; ok {
+			if err := handler.Handle(message); err != nil {
+				log.Printf("[APP] Handler error for topic %s: %v", topic, err)
+				return fmt.Errorf("handler error for topic %s: %w", topic, err)
+			}
+			return nil
+		}
+		log.Printf("[APP] No handler found for topic: %s", topic)
+		return fmt.Errorf("no handler found for topic %s", topic)
+	}
+	
 	consumer := infrastructure.NewKafkaConsumer(
 		cfg.Kafka.Brokers,
 		topics,
 		"notification-service",
-		func(topic string, message []byte) error {
-			log.Printf("[HANDLER] Topic: %s, Message: %s", topic, string(message))
-			if handler, ok := eventHandlers[topic]; ok {
-				return handler.Handle(message)
-			}
-			log.Printf("No handler found for topic: %s", topic)
-			return nil
-		},
+		messageHandler,
 	)
 
 	consumer.Start(ctx)
 
-	log.Println("Notification Service is running. Waiting for events...")
+	log.Println("[APP] Notification Service is running. Waiting for events...")
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	select {
 	case <-quit:
-		log.Println("Notification Service shutting down...")
+		log.Println("[APP] Notification Service shutting down...")
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()

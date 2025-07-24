@@ -11,6 +11,8 @@ import (
 
 	"subscription-service/config"
 	"subscription-service/internal/handlers"
+	"subscription-service/internal/domain"
+	"encoding/json"
 	"subscription-service/internal/infrastructure"
 	"subscription-service/internal/jobs"
 	"subscription-service/internal/proto"
@@ -53,10 +55,20 @@ func Run(ctx context.Context) error {
 
 	dispatcher := handlers.NewDispatcher(repo, publisher)
 
+	eventHandler := func(ctx context.Context, topic string, message []byte) error {
+		var cmd domain.SubscriptionCommand
+		if err := json.Unmarshal(message, &cmd); err != nil {
+			return fmt.Errorf("unmarshal subscription command: %w", err)
+		}
+		return dispatcher.Handle(ctx, cmd)
+	}
+	topics := []string{cfg.Kafka.CommandTopic}
+
 	consumer := infrastructure.NewKafkaConsumer(
 		cfg.Kafka.Brokers,
-		cfg.Kafka.CommandTopic,
-		dispatcher.Handle,
+		topics,
+		"subscription-service",
+		eventHandler,
 	)
 	go consumer.Start(ctx)
 
