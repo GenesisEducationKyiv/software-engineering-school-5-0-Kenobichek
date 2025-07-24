@@ -3,8 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"notification-service/domain"
-	"notification-service/notifier"
+	"notification-service/internal/domain"
+	"notification-service/internal/notifier"
 )
 
 func parseEvent[T any](message []byte) (T, error) {

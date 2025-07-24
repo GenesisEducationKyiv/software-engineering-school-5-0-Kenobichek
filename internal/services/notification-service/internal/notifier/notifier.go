@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"notification-service/domain"
+	"notification-service/internal/domain"
 )
 
 type EmailNotifierManager interface {
@@ -43,7 +43,7 @@ func (s *Service) SendConfirmation(
 	if err != nil {
 		return fmt.Errorf("failed to load template: %v", err)
 	}
-	message := strings.ReplaceAll(tpl.Message, "{{ confirm_token }}", token)
+	message := strings.ReplaceAll(tpl.Message, "{{ .ConfirmToken }}", token)
 	subject := tpl.Subject
 	return s.notifier.Send(recipient, message, subject)
 }
@@ -57,11 +57,11 @@ func (s *Service) SendWeatherUpdate(
 	if err != nil {
 		return fmt.Errorf("failed to load template: %v", err)
 	}
-	message := strings.ReplaceAll(tpl.Message, "{{ city }}", metrics.City)
-	message = strings.ReplaceAll(message, "{{ description }}", metrics.Description)
-	message = strings.ReplaceAll(message, "{{ temperature }}", fmt.Sprintf("%.1f", metrics.Temperature))
-	message = strings.ReplaceAll(message, "{{ humidity }}", fmt.Sprintf("%.1f", metrics.Humidity))
-	subject := strings.ReplaceAll(tpl.Subject, "{{ city }}", metrics.City)
+	message := strings.ReplaceAll(tpl.Message, "{{ .City }}", metrics.City)
+	message = strings.ReplaceAll(message, "{{ .Description }}", metrics.Description)
+	message = strings.ReplaceAll(message, "{{ .Temperature }}", fmt.Sprintf("%.1f", metrics.Temperature))
+	message = strings.ReplaceAll(message, "{{ .Humidity }}", fmt.Sprintf("%.1f", metrics.Humidity))
+	subject := strings.ReplaceAll(tpl.Subject, "{{ .City }}", metrics.City)
 	return s.notifier.Send(recipient, message, subject)
 }
 
@@ -74,8 +74,8 @@ func (s *Service) SendUnsubscribe(
 	if err != nil {
 		return fmt.Errorf("failed to load template: %v", err)
 	}
-	message := strings.ReplaceAll(tpl.Message, "{{ city }}", city)
-	subject := strings.ReplaceAll(tpl.Subject, "{{ city }}", city)
+	message := strings.ReplaceAll(tpl.Message, "{{ .City }}", city)
+	subject := strings.ReplaceAll(tpl.Subject, "{{ .City }}", city)
 
 	return s.notifier.Send(recipient, message, subject)
 }

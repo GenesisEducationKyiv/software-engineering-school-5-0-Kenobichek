@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"log"
-	"notification-service/app"
+	"notification-service/internal/app"
 )
 
 func main() {
