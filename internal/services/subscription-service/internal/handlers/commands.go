@@ -3,16 +3,27 @@ package handlers
 import (
 	"context"
 	"log"
+
 	"subscription-service/internal/domain"
-	"subscription-service/internal/infrastructure"
 	"subscription-service/internal/repository"
 
 	"github.com/google/uuid"
 )
 
+type subscriptionRepositoryManager interface {
+    CreateSubscription(ctx context.Context, sub *repository.Subscription) error
+    ConfirmByToken(ctx context.Context, token string) error
+    UnsubscribeByToken(ctx context.Context, token string) error
+    GetSubscriptionByToken(ctx context.Context, token string) (*repository.Subscription, error)
+}
+
+type eventPublisherManager interface {
+    PublishWithTopic(ctx context.Context, topic string, event interface{}) error
+}
+
 type SubscribeHandler struct {
-	repo      *repository.Repository
-	publisher *infrastructure.KafkaPublisher
+	repo      subscriptionRepositoryManager
+	publisher eventPublisherManager
 }
 
 func (h *SubscribeHandler) Handle(ctx context.Context, cmd domain.SubscriptionCommand) error {
@@ -47,8 +58,8 @@ func (h *SubscribeHandler) Handle(ctx context.Context, cmd domain.SubscriptionCo
 }
 
 type ConfirmHandler struct {
-	repo      *repository.Repository
-	publisher *infrastructure.KafkaPublisher
+	repo      subscriptionRepositoryManager
+	publisher eventPublisherManager
 }
 
 func (h *ConfirmHandler) Handle(ctx context.Context, cmd domain.SubscriptionCommand) error {
@@ -62,8 +73,8 @@ func (h *ConfirmHandler) Handle(ctx context.Context, cmd domain.SubscriptionComm
 }
 
 type UnsubscribeHandler struct {
-	repo      *repository.Repository
-	publisher *infrastructure.KafkaPublisher
+	repo      subscriptionRepositoryManager
+	publisher eventPublisherManager
 }
 
 func (h *UnsubscribeHandler) Handle(ctx context.Context, cmd domain.SubscriptionCommand) error {
@@ -100,12 +111,12 @@ type commandHandler interface {
 	Handle(ctx context.Context, cmd domain.SubscriptionCommand) error
 }
 
-type Dispatcher struct {
+type dispatcher struct {
 	handlers map[string]commandHandler
 }
 
-func NewDispatcher(repo *repository.Repository, publisher *infrastructure.KafkaPublisher) *Dispatcher {
-	return &Dispatcher{
+func NewDispatcher(repo subscriptionRepositoryManager, publisher eventPublisherManager) *dispatcher {
+	return &dispatcher{
 		handlers: map[string]commandHandler{
 			"subscribe":   &SubscribeHandler{repo: repo, publisher: publisher},
 			"confirm":     &ConfirmHandler{repo: repo, publisher: publisher},
@@ -114,7 +125,7 @@ func NewDispatcher(repo *repository.Repository, publisher *infrastructure.KafkaP
 	}
 }
 
-func (d *Dispatcher) Handle(cmd domain.SubscriptionCommand) error {
+func (d *dispatcher) Handle(cmd domain.SubscriptionCommand) error {
 	log.Printf("Received command: %+v", cmd)
 	h, ok := d.handlers[cmd.Command]
 	if !ok {

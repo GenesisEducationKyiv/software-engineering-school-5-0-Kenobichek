@@ -2,18 +2,19 @@ package app
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"subscription-service/config"
 	"subscription-service/internal/handlers"
 	"subscription-service/internal/infrastructure"
-	"subscription-service/internal/repository"
 	"subscription-service/internal/jobs"
 	"subscription-service/internal/proto"
+	"subscription-service/internal/repository"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -25,25 +26,20 @@ func Run(ctx context.Context) error {
 
 	cfg, err := config.MustLoad()
 	if err != nil {
-		return err
+		return fmt.Errorf("load config: %w", err)
 	}
 
 	db, err := infrastructure.InitDB(cfg.GetDatabaseDSN())
 	if err != nil {
-		return err
+		return fmt.Errorf("init db: %w", err)
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
-			log.Printf("DB close error: %v", err)
+			log.Printf("db close error: %v", err)
 		}
 	}()
 
-	migrationsPath := "internal/migrations"
-	if _, err := os.Stat(migrationsPath); os.IsNotExist(err) {
-		return err
-	}
-
-	if err := infrastructure.RunMigrations(db, migrationsPath); err != nil {
+	if err := runMigrations(db, "internal/migrations"); err != nil {
 		return err
 	}
 
@@ -51,9 +47,10 @@ func Run(ctx context.Context) error {
 	publisher := infrastructure.NewKafkaPublisher(cfg.Kafka.Brokers, cfg.Kafka.EventTopic)
 	defer func() {
 		if err := publisher.Close(); err != nil {
-			log.Printf("Publisher close error: %v", err)
+			log.Printf("publisher close error: %v", err)
 		}
 	}()
+
 	dispatcher := handlers.NewDispatcher(repo, publisher)
 
 	consumer := infrastructure.NewKafkaConsumer(
@@ -62,34 +59,45 @@ func Run(ctx context.Context) error {
 		dispatcher.Handle,
 	)
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	go consumer.Start(ctx)
-
-	grpcAddr := cfg.WeatherServiceAddr
-
-	conn, err := grpc.NewClient(
-		grpcAddr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
+	weatherClient, err := newWeatherClient(cfg.WeatherServiceAddr)
 	if err != nil {
-		log.Printf("[WeatherHandler] failed to dial gRPC at %s: %v", grpcAddr, err)
 		return err
 	}
-	log.Printf("[WeatherHandler] gRPC connection established to %s", grpcAddr)
-	weatherClient := proto.NewWeatherServiceClient(conn)
 
 	weatherJob := jobs.NewWeatherUpdateJob(repo, publisher, weatherClient)
 	go weatherJob.StartPeriodic(ctx)
 
 	log.Println("Subscription Service is running.")
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	<-ctx.Done()
 	log.Println("Subscription Service shutting down...")
-	cancel()
-	time.Sleep(1 * time.Second)
+
 	return nil
+}
+
+func runMigrations(db *sql.DB, path string) error {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return fmt.Errorf("migrations path %s does not exist", path)
+	}
+	if err := infrastructure.RunMigrations(db, path); err != nil {
+		return fmt.Errorf("run migrations: %w", err)
+	}
+	return nil
+}
+
+func newWeatherClient(addr string) (proto.WeatherServiceClient, error) {
+	conn, err := grpc.NewClient(
+		addr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("dial weather service at %s: %w", addr, err)
+	}
+	log.Printf("[WeatherHandler] gRPC connection established to %s", addr)
+	return proto.NewWeatherServiceClient(conn), nil
 }
