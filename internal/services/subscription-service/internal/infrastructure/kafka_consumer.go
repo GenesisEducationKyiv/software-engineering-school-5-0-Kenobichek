@@ -79,6 +79,7 @@ func (c *KafkaConsumer) consumeTopic(ctx context.Context, topic string) error {
 		GroupID:  c.groupID,
 		MinBytes: 10e3, // 10KB
 		MaxBytes: 10e6, // 10MB
+		CommitInterval: 0,
 	})
 	defer func() {
 		if err := r.Close(); err != nil {
@@ -98,7 +99,7 @@ func (c *KafkaConsumer) consumeTopic(ctx context.Context, topic string) error {
 			return err
 		}
 
-		log.Printf("[KAFKA CONSUMER] received event from topic %s: %s", topic, string(m.Value))
+		log.Printf("[KAFKA CONSUMER] received event from topic %s, partition %d, offset %d", topic, m.Partition, m.Offset)
 
 		if c.handler != nil {
 			if err := c.processWithRetry(ctx, topic, m.Value); err != nil {

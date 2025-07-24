@@ -58,7 +58,7 @@ func Run(ctx context.Context) error {
 			return nil
 		}
 		log.Printf("[APP] No handler found for topic: %s", topic)
-		return fmt.Errorf("no handler found for topic %s", topic)
+		return nil
 	}
 	
 	consumer := infrastructure.NewKafkaConsumer(
