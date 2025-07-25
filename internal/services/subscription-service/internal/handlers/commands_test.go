@@ -5,37 +5,37 @@ import (
 	"errors"
 	"testing"
 
-	"subscription-service/internal/repository"
+	"subscription-service/internal/repository/subscriptions"
 
 	"github.com/stretchr/testify/assert"
 )
 
 type mockRepo struct {
-	CreateSubscriptionFunc     func(ctx context.Context, sub *repository.Subscription) error
+	CreateSubscriptionFunc     func(ctx context.Context, sub *subscriptions.Subscription) error
 	UnsubscribeByTokenFunc     func(ctx context.Context, token string) error
-	GetSubscriptionByTokenFunc func(ctx context.Context, token string) (*repository.Subscription, error)
+	GetSubscriptionByTokenFunc func(ctx context.Context, token string) (*subscriptions.Subscription, error)
 }
 
-func (m *mockRepo) CreateSubscription(ctx context.Context, sub *repository.Subscription) error {
+func (m *mockRepo) CreateSubscription(ctx context.Context, sub *subscriptions.Subscription) error {
 	return m.CreateSubscriptionFunc(ctx, sub)
 }
 func (m *mockRepo) UnsubscribeByToken(ctx context.Context, token string) error {
 	return m.UnsubscribeByTokenFunc(ctx, token)
 }
-func (m *mockRepo) GetSubscriptionByToken(ctx context.Context, token string) (*repository.Subscription, error) {
+func (m *mockRepo) GetSubscriptionByToken(ctx context.Context, token string) (*subscriptions.Subscription, error) {
 	return m.GetSubscriptionByTokenFunc(ctx, token)
 }
 
 func TestMockRepo_CreateSubscription(t *testing.T) {
 	repo := &mockRepo{
-		CreateSubscriptionFunc: func(ctx context.Context, sub *repository.Subscription) error {
+		CreateSubscriptionFunc: func(ctx context.Context, sub *subscriptions.Subscription) error {
 			if sub.ChannelValue == "" {
 				return errors.New("empty email")
 			}
 			return nil
 		},
 	}
-	err := repo.CreateSubscription(context.Background(), &repository.Subscription{
+	err := repo.CreateSubscription(context.Background(), &subscriptions.Subscription{
 		ChannelType:      "email",
 		ChannelValue:     "test@example.com",
 		City:             "Poltava",
@@ -47,7 +47,7 @@ func TestMockRepo_CreateSubscription(t *testing.T) {
 
 func TestMockRepo_GetSubscriptionByToken_NotFound(t *testing.T) {
 	repo := &mockRepo{
-		GetSubscriptionByTokenFunc: func(ctx context.Context, token string) (*repository.Subscription, error) {
+		GetSubscriptionByTokenFunc: func(ctx context.Context, token string) (*subscriptions.Subscription, error) {
 			return nil, errors.New("not found")
 		},
 	}

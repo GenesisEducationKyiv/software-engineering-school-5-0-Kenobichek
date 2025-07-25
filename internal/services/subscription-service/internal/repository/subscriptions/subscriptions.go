@@ -1,4 +1,4 @@
-package repository
+package subscriptions
 
 import (
 	"context"
@@ -9,23 +9,17 @@ import (
 	"time"
 )
 
-type Subscription struct {
-	ID               int
-	ChannelType      string
-	ChannelValue     string
-	City             string
-	FrequencyMinutes int
-	Confirmed        bool
-	Token            string
-	NextNotifiedAt   time.Time
-	CreatedAt        time.Time
+type databaseManager interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
 type Repository struct {
-	db *sql.DB
+	db databaseManager
 }
 
-func New(db *sql.DB) *Repository {
+func New(db databaseManager) *Repository {
 	return &Repository{db: db}
 }
 
@@ -99,7 +93,7 @@ func (r *Repository) GetDueSubscriptions(ctx context.Context) ([]Subscription, e
 	return subs, nil
 }
 
-func (r *Repository) UpdateNextNotification(ctx context.Context, id int, next time.Time) error {
+func (r *Repository) UpdateNextNotification(ctx context.Context, id int64, next time.Time) error {
 	_, err := r.db.ExecContext(ctx, `UPDATE subscriptions SET next_notified_at = $1 WHERE id = $2`, next, id)
 	if err != nil {
 		return fmt.Errorf("failed to update next_notified_at for id %d: %w", id, err)

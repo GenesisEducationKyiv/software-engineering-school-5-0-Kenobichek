@@ -6,16 +6,16 @@ import (
 	"log"
 
 	"subscription-service/internal/domain"
-	"subscription-service/internal/repository"
+	"subscription-service/internal/repository/subscriptions"
 
 	"github.com/google/uuid"
 )
 
 type subscriptionRepositoryManager interface {
-    CreateSubscription(ctx context.Context, sub *repository.Subscription) error
+    CreateSubscription(ctx context.Context, sub *subscriptions.Subscription) error
     ConfirmByToken(ctx context.Context, token string) error
     UnsubscribeByToken(ctx context.Context, token string) error
-    GetSubscriptionByToken(ctx context.Context, token string) (*repository.Subscription, error)
+    GetSubscriptionByToken(ctx context.Context, token string) (*subscriptions.Subscription, error)
 }
 
 type eventPublisherManager interface {
@@ -29,7 +29,7 @@ type SubscribeHandler struct {
 
 func (h *SubscribeHandler) Handle(ctx context.Context, cmd domain.SubscriptionCommand) error {
 	log.Printf("[SubscribeHandler] Handling subscribe command: %+v", cmd)
-	sub := &repository.Subscription{
+	sub := &subscriptions.Subscription{
 		ChannelType:      cmd.ChannelType,
 		ChannelValue:     cmd.ChannelValue,
 		City:             cmd.City,

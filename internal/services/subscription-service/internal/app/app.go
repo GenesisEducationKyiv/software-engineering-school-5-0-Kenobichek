@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -10,24 +11,19 @@ import (
 	"syscall"
 
 	"subscription-service/config"
-	"subscription-service/internal/handlers"
 	"subscription-service/internal/domain"
-	"encoding/json"
+	"subscription-service/internal/handlers"
 	"subscription-service/internal/infrastructure"
 	"subscription-service/internal/jobs"
-	"subscription-service/internal/proto"
-	"subscription-service/internal/repository"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"subscription-service/internal/repository/subscriptions"
+	"subscription-service/internal/weatherclient"
 )
-
 
 func Run(ctx context.Context) error {
 	log.Println("Subscription Service starting...")
 
 	cfg, err := config.MustLoad()
-	if err != nil {
+	if err != nil {	
 		return fmt.Errorf("load config: %w", err)
 	}
 
@@ -45,7 +41,7 @@ func Run(ctx context.Context) error {
 		return err
 	}
 
-	repo := repository.New(db)
+	repo := subscriptions.New(db)
 	publisher := infrastructure.NewKafkaPublisher(cfg.Kafka.Brokers, cfg.Kafka.EventTopic)
 	defer func() {
 		if err := publisher.Close(); err != nil {
@@ -75,7 +71,7 @@ func Run(ctx context.Context) error {
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	weatherClient, err := newWeatherClient(cfg.WeatherServiceAddr)
+	weatherClient, err := weatherclient.New(cfg.WeatherServiceAddr)
 	if err != nil {
 		return err
 	}
@@ -99,17 +95,4 @@ func runMigrations(db *sql.DB, path string) error {
 		return fmt.Errorf("run migrations: %w", err)
 	}
 	return nil
-}
-
-func newWeatherClient(addr string) (proto.WeatherServiceClient, error) {
-	conn, err := grpc.NewClient(
-		addr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("dial weather service at %s: %w", addr, err)
-	}
-	log.Printf("[WeatherHandler] gRPC connection established to %s", addr)
-	return proto.NewWeatherServiceClient(conn), nil
 }

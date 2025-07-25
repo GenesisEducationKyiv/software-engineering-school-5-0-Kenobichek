@@ -1,34 +1,39 @@
 package infrastructure
 
 import (
-	"context"
-	"encoding/json"
-	"sync"
+    "context"
+    "encoding/json"
+    "sync"
 
-	"github.com/segmentio/kafka-go"
+    "github.com/segmentio/kafka-go"
 )
 
+type messageWriterManager interface {
+    WriteMessages(ctx context.Context, msgs ...kafka.Message) error
+    Close() error
+}
+
 type KafkaPublisher struct {
-	brokers []string
-	writers map[string]*kafka.Writer
-	mu      sync.Mutex
+    brokers []string
+    writers map[string]messageWriterManager
+    mu      sync.Mutex
 }
 
 func NewKafkaPublisher(brokers []string, _ string) *KafkaPublisher {
-	return &KafkaPublisher{
-		brokers: brokers,
-		writers: make(map[string]*kafka.Writer),
-	}
+    return &KafkaPublisher{
+        brokers: brokers,
+        writers: make(map[string]messageWriterManager),
+    }
 }
 
-func (p *KafkaPublisher) getWriter(topic string) *kafka.Writer {
+func (p *KafkaPublisher) getWriter(topic string) messageWriterManager {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	if w, ok := p.writers[topic]; ok {
-		return w
-	}
-	w := &kafka.Writer{
+        return w
+    }
+    w := &kafka.Writer{
 		Addr:     kafka.TCP(p.brokers...),
 		Topic:    topic,
 		Balancer: &kafka.LeastBytes{},
@@ -43,7 +48,7 @@ func (p *KafkaPublisher) PublishWithTopic(ctx context.Context, topic string, eve
 		return err
 	}
 	writer := p.getWriter(topic)
-	return writer.WriteMessages(ctx, kafka.Message{Value: msg})
+    return writer.WriteMessages(ctx, kafka.Message{Value: msg})
 }
 
 func (p *KafkaPublisher) Publish(ctx context.Context, event interface{}) error {
@@ -56,11 +61,11 @@ func (p *KafkaPublisher) Close() error {
 	
 	var firstErr error
 	for _, w := range p.writers {
-		if err := w.Close(); err != nil && firstErr == nil {
-			firstErr = err
-		}
-	}
+        if err := w.Close(); err != nil && firstErr == nil {
+            firstErr = err
+        }
+    }
 
-	p.writers = make(map[string]*kafka.Writer)
-	return firstErr
+    p.writers = make(map[string]messageWriterManager)
+    return firstErr
 }

@@ -7,8 +7,13 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
+type messageWriterManager interface {
+	WriteMessages(ctx context.Context, msgs ...kafka.Message) error
+	Close() error
+}
+
 type Publisher struct {
-	writer *kafka.Writer
+	writer messageWriterManager
 }
 
 func NewPublisher(brokers []string, topic string) *Publisher {

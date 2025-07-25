@@ -6,21 +6,33 @@ import (
 	"time"
 
 	"subscription-service/internal/domain"
-	"subscription-service/internal/infrastructure"
-	"subscription-service/internal/repository"
+	"subscription-service/internal/repository/subscriptions"
 	"subscription-service/internal/proto"
 )
 
+type subscriptionRepositoryManager interface {
+	GetDueSubscriptions(ctx context.Context) ([]subscriptions.Subscription, error)
+	UpdateNextNotification(ctx context.Context, subscriptionID int64, t time.Time) error
+}
+
+type eventPublisherManager interface {
+	PublishWithTopic(ctx context.Context, topic string, event any) error
+}
+
+type weatherClientManager interface {
+	GetWeather(ctx context.Context, req *proto.WeatherRequest) (*proto.WeatherResponse, error)
+}
+
 type WeatherUpdateJob struct {
-	repo          *repository.Repository
-	publisher     *infrastructure.KafkaPublisher
-	weatherClient proto.WeatherServiceClient
+	repo          subscriptionRepositoryManager
+	publisher     eventPublisherManager
+	weatherClient weatherClientManager
 }
 
 func NewWeatherUpdateJob(
-	repo *repository.Repository,
-	publisher *infrastructure.KafkaPublisher,
-	weatherClient proto.WeatherServiceClient,
+	repo subscriptionRepositoryManager,
+	publisher eventPublisherManager,
+	weatherClient weatherClientManager,
 ) *WeatherUpdateJob {
 	return &WeatherUpdateJob{
 		repo:          repo,
@@ -56,7 +68,7 @@ func (j *WeatherUpdateJob) Run(ctx context.Context) {
 			log.Printf("[WeatherUpdateJob] failed to publish weather update for user=%d: %v", s.ID, err)
 		}
 
-		if err := j.repo.UpdateNextNotification(ctx, s.ID, time.Now()); err != nil {
+		if err := j.repo.UpdateNextNotification(ctx, int64(s.ID), time.Now()); err != nil {
 			log.Printf("[WeatherUpdateJob] failed to update next notification for user=%d: %v", s.ID, err)
 		}
 	}
