@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"subscription-service/internal/proto"
+	"api-gateway/proto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

@@ -12,12 +12,12 @@ import (
 )
 
 type WeatherAPIProvider struct {
-	httpClient *http.Client
+	httpClient httpClientManager
 	apiurl     string
 	apikey     string
 }
 
-func NewWeatherAPIProvider(httpClient *http.Client, apiurl, apikey string) *WeatherAPIProvider {
+func NewWeatherAPIProvider(httpClient httpClientManager, apiurl, apikey string) *WeatherAPIProvider {
 	return &WeatherAPIProvider{
 		httpClient: httpClient,
 		apiurl:     apiurl,

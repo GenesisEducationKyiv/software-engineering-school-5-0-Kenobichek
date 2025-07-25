@@ -1,17 +1,26 @@
 package routes
 
 import (
-	"api-gateway/internal/handlers"
 	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 )
 
+type weatherHandlerManager interface {
+	WeatherProxyHandler(w http.ResponseWriter, r *http.Request)
+}
+
+type subscribeHandlerManager interface {
+	Subscribe(w http.ResponseWriter, r *http.Request)
+	ConfirmSubscription(w http.ResponseWriter, r *http.Request)
+	Unsubscribe(w http.ResponseWriter, r *http.Request)
+}
+
 func RegisterRoutes(
 	r chi.Router,
-	weatherHandler *handlers.WeatherHandler,
-	subscribeHandler *handlers.SubscribeHandler,
+	weatherHandler weatherHandlerManager,
+	subscribeHandler subscribeHandlerManager,
 ) {
 	r.Get("/weather", weatherHandler.WeatherProxyHandler)
 

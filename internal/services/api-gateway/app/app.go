@@ -14,6 +14,7 @@ import (
 	"api-gateway/internal/handlers"
 	"api-gateway/internal/kafka"
 	"api-gateway/internal/routes"
+	"api-gateway/internal/weatherclient"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -34,14 +35,13 @@ func Run() error {
 	}()
 
 	subscribeHandler := handlers.NewSubscribeHandler(publisher)
-
-	weatherHandler, err := handlers.NewWeatherHandler(cfg.WeatherServiceAddr)
+	
+	weatherClient, err := weatherclient.New(cfg.WeatherServiceAddr)
 	if err != nil {
-		if cerr := publisher.Close(); cerr != nil {
-			log.Printf("failed to close publisher: %v", cerr)
-		}
-		return fmt.Errorf("failed to init WeatherHandler: %w", err)
+		return fmt.Errorf("failed to init weather client: %w", err)
 	}
+
+	weatherHandler := handlers.NewWeatherHandler(weatherClient)
 
 	r.Route("/api", func(r chi.Router) {
 		routes.RegisterRoutes(r, weatherHandler, subscribeHandler)

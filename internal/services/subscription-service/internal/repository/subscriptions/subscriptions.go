@@ -80,6 +80,8 @@ func (r *Repository) GetDueSubscriptions(ctx context.Context) ([]Subscription, e
 	if err != nil {
 		return subs, fmt.Errorf("failed to get due subscriptions: %w", err)
 	}
+	defer rows.Close()
+	
 	for rows.Next() {
 		var s Subscription
 		if err := rows.Scan(&s.ID, &s.ChannelType, &s.ChannelValue, &s.City, &s.FrequencyMinutes); err != nil {

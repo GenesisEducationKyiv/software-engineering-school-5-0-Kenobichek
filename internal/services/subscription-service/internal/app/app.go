@@ -73,7 +73,7 @@ func Run(ctx context.Context) error {
 
 	weatherClient, err := weatherclient.New(cfg.WeatherServiceAddr)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to init weather client: %w", err)
 	}
 
 	weatherJob := jobs.NewWeatherUpdateJob(repo, publisher, weatherClient)

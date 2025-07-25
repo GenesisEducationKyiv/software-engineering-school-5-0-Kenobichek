@@ -11,13 +11,17 @@ import (
 	"internal/services/weather-service/internal/domain"
 )
 
+type httpClientManager interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 type GeocodingService struct {
-	httpClient *http.Client
+	httpClient httpClientManager
 	apiurl     string
 	apikey     string
 }
 
-func NewGeocodingService(httpClient *http.Client, apiurl, apikey string) *GeocodingService {
+func NewGeocodingService(httpClient httpClientManager, apiurl, apikey string) *GeocodingService {
 	return &GeocodingService{
 		httpClient: httpClient,
 		apiurl:     apiurl,
@@ -60,12 +64,12 @@ func (g *GeocodingService) GetCoordinates(ctx context.Context, city string) (dom
 }
 
 type OpenWeatherAPI struct {
-	httpClient *http.Client
+	httpClient httpClientManager
 	apiurl     string
 	apikey     string
 }
 
-func NewOpenWeatherAPI(httpClient *http.Client, apiurl, apikey string) *OpenWeatherAPI {
+func NewOpenWeatherAPI(httpClient httpClientManager, apiurl, apikey string) *OpenWeatherAPI {
 	return &OpenWeatherAPI{
 		httpClient: httpClient,
 		apiurl:     apiurl,

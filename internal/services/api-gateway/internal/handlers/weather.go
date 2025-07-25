@@ -8,28 +8,18 @@ import (
 	"time"
 
 	"api-gateway/proto"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
-type WeatherHandler struct {
-	grpcClient proto.WeatherServiceClient
+type weatherClientManager interface {
+	GetWeather(ctx context.Context, req *proto.WeatherRequest) (*proto.WeatherResponse, error)
 }
 
-func NewWeatherHandler(grpcAddr string) (*WeatherHandler, error) {
-	log.Printf("[WeatherHandler] initializing gRPC client to %s", grpcAddr)
-	conn, err := grpc.NewClient(
-		grpcAddr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		log.Printf("[WeatherHandler] failed to dial gRPC at %s: %v", grpcAddr, err)
-		return nil, err
-	}
-	log.Printf("[WeatherHandler] gRPC connection established to %s", grpcAddr)
-	client := proto.NewWeatherServiceClient(conn)
-	return &WeatherHandler{grpcClient: client}, nil
+type WeatherHandler struct {
+	weatherClient weatherClientManager
+}
+
+func NewWeatherHandler(weatherClient weatherClientManager) *WeatherHandler {
+	return &WeatherHandler{weatherClient: weatherClient}
 }
 
 func (h *WeatherHandler) WeatherProxyHandler(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +32,7 @@ func (h *WeatherHandler) WeatherProxyHandler(w http.ResponseWriter, r *http.Requ
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
-	resp, err := h.grpcClient.GetWeather(ctx, &proto.WeatherRequest{City: city})
+	resp, err := h.weatherClient.GetWeather(ctx, &proto.WeatherRequest{City: city})
 	if err != nil {
 		http.Error(w, "failed to get weather: "+err.Error(), http.StatusBadGateway)
 		log.Printf("[WeatherProxyHandler] gRPC error: %v", err)
