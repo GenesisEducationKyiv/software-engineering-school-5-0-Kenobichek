@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 )
@@ -80,7 +81,11 @@ func (r *Repository) GetDueSubscriptions(ctx context.Context) ([]Subscription, e
 	if err != nil {
 		return subs, fmt.Errorf("failed to get due subscriptions: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("failed to close rows: %v", err)
+		}
+	}()
 	
 	for rows.Next() {
 		var s Subscription
@@ -122,10 +127,10 @@ func (r *Repository) GetSubscriptionByToken(ctx context.Context, token string) (
 		&sub.CreatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return &sub, errors.New("subscription not found")
+		return nil, errors.New("subscription not found")
 	}
 	if err != nil {
-		return &sub, fmt.Errorf("failed to get subscription by token '%s': %w", token, err)
+		return nil, fmt.Errorf("failed to get subscription by token '%s': %w", token, err)
 	}
 	return &sub, nil
 }
