@@ -11,9 +11,13 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+type connectionManager interface {
+	Close() error
+}
+
 type WeatherClient struct {
     client proto.WeatherServiceClient
-	conn *grpc.ClientConn
+	conn connectionManager
 }
 
 func New(addr string) (*WeatherClient, error) {

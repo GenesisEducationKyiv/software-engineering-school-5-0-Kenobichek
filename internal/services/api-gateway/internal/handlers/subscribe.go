@@ -13,6 +13,10 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+const (
+	defaultPublishTimeout = 3 * time.Second
+)
+
 type SubscribeHandler struct {
 	Publisher *kafka.Publisher
 }
@@ -56,7 +60,7 @@ func (h *SubscribeHandler) Subscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), defaultPublishTimeout)
 	defer cancel()
 	if err := h.Publisher.Publish(ctx, email, payload); err != nil {
 		log.Printf("failed to publish event: %v", err)
@@ -91,7 +95,7 @@ func (h *SubscribeHandler) handleTokenCommand(
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), defaultPublishTimeout)
 	defer cancel()
 	if err := h.Publisher.Publish(ctx, token, payload); err != nil {
 		http.Error(w, "failed to publish "+command+" event: "+err.Error(), http.StatusInternalServerError)

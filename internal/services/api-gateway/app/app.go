@@ -19,6 +19,10 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+const (
+	defaultRequestTimeout = 5 * time.Second
+)
+
 func Run() error {
 	cfg, err := config.Load()
 	if err != nil {
@@ -35,7 +39,7 @@ func Run() error {
 	}()
 
 	subscribeHandler := handlers.NewSubscribeHandler(publisher)
-	
+
 	weatherClient, err := weatherclient.New(cfg.WeatherServiceAddr)
 	if err != nil {
 		return fmt.Errorf("failed to init weather client: %w", err)
@@ -52,7 +56,7 @@ func Run() error {
 	srv := &http.Server{
 		Addr:              addr,
 		Handler:           r,
-		ReadHeaderTimeout: 5 * time.Second,
+		ReadHeaderTimeout: defaultRequestTimeout,
 	}
 
 	stop := make(chan os.Signal, 1)
@@ -67,7 +71,9 @@ func Run() error {
 
 	<-stop
 	log.Println("api-gateway shutting down...")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultRequestTimeout)
 	defer cancel()
+
 	return srv.Shutdown(ctx)
 }

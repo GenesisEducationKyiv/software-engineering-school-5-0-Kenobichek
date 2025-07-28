@@ -5,16 +5,25 @@ import (
 	"regexp"
 )
 
+const (
+	hourlyFrequencyMinutes = 60
+	dailyFrequencyMinutes = 1440
+	maxCityNameLength = 100
+	maxEmailLength = 100
+	regexEmail = `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
+)
+
 func validateSubscriptionParams(email, city, frequency string) error {
 	if email == "" {
 		return fmt.Errorf("email is required")
 	}
-	emailRegex := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
-	if matched, _ := regexp.MatchString(emailRegex, email); !matched {
+	if matched, _ := regexp.MatchString(regexEmail, email); !matched {
 		return fmt.Errorf("invalid email format")
 	}
-
-	if len(city) > 100 {
+	if len(email) > maxEmailLength {
+		return fmt.Errorf("email too long")
+	}
+	if len(city) > maxCityNameLength {
 		return fmt.Errorf("city name too long")
 	}	
 	if city == "" {
@@ -29,9 +38,9 @@ func validateSubscriptionParams(email, city, frequency string) error {
 func frequencyToMinutes(frequency string) (int, error) {
 	switch frequency {
 	case "hourly":
-		return 60, nil
+		return hourlyFrequencyMinutes, nil
 	case "daily":
-		return 1440, nil
+		return dailyFrequencyMinutes, nil
 	default:
 		return 0, fmt.Errorf("invalid frequency")
 	}

@@ -10,6 +10,15 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
+const (
+	delay = 200 * time.Millisecond
+	maxRetryDelay = 30 * time.Second
+	maxHandlerRetryAttempts = 5
+	maxByteLimit = 10 * 1024
+	minByteLimit = 10 * 1024
+	commitInterval = 0
+)
+
 type EventHandler func(ctx context.Context, topic string, message []byte) error
 
 type KafkaConsumer struct {
@@ -49,8 +58,7 @@ func (c *KafkaConsumer) Start(ctx context.Context) <-chan struct{} {
 }
 
 func (c *KafkaConsumer) consumeTopicWithRetries(ctx context.Context, topic string) {
-	const maxRetryDelay = 30 * time.Second
-	retryDelay := 500 * time.Millisecond
+	retryDelay := delay
 
 	for {
 		err := c.consumeTopic(ctx, topic)
@@ -77,9 +85,9 @@ func (c *KafkaConsumer) consumeTopic(ctx context.Context, topic string) error {
 		Brokers:  c.brokers,
 		Topic:    topic,
 		GroupID:  c.groupID,
-		MinBytes: 10e3, // 10KB
-		MaxBytes: 10e6, // 10MB
-		CommitInterval: 0,
+		MinBytes: minByteLimit,
+		MaxBytes: maxByteLimit,
+		CommitInterval: commitInterval,
 	})
 	defer func() {
 		if err := r.Close(); err != nil {
@@ -116,17 +124,16 @@ func (c *KafkaConsumer) consumeTopic(ctx context.Context, topic string) error {
 }
 
 func (c *KafkaConsumer) processWithRetry(ctx context.Context, topic string, msg []byte) error {
-	const maxAttempts = 5
-	delay := 200 * time.Millisecond
+	delay := delay
 	var lastErr error
 
-	for i := 0; i < maxAttempts; i++ {
+	for i := 0; i < maxHandlerRetryAttempts; i++ {
 		err := c.handler(ctx, topic, msg)
 		if err == nil {
 			return nil
 		}
 		lastErr = err
-		log.Printf("[WARN] handler error (attempt %d/%d) for topic %s: %v", i+1, maxAttempts, topic, err)
+		log.Printf("[WARN] handler error (attempt %d/%d) for topic %s: %v", i+1, maxHandlerRetryAttempts, topic, err)
 
 		select {
 		case <-time.After(delay):
