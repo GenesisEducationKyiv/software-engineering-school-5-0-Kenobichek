@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
+	"subscription-service/internal/observability"
 	"os"
 	"os/signal"
 	"syscall"
@@ -20,12 +20,15 @@ import (
 )
 
 func Run(ctx context.Context) error {
-	log.Println("Subscription Service starting...")
+	observability.Infof("Subscription Service starting...")
 
 	cfg, err := config.MustLoad()
 	if err != nil {	
 		return fmt.Errorf("load config: %w", err)
 	}
+
+	// initialize metrics server early
+	observability.StartMetricsServer()
 
 	db, err := infrastructure.InitDB(cfg.GetDatabaseDSN())
 	if err != nil {
@@ -33,7 +36,7 @@ func Run(ctx context.Context) error {
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
-			log.Printf("db close error: %v", err)
+			observability.Warnf("db close error: %v", err)
 		}
 	}()
 
@@ -45,7 +48,7 @@ func Run(ctx context.Context) error {
 	publisher := infrastructure.NewKafkaPublisher(cfg.Kafka.Brokers, cfg.Kafka.EventTopic)
 	defer func() {
 		if err := publisher.Close(); err != nil {
-			log.Printf("publisher close error: %v", err)
+			observability.Warnf("publisher close error: %v", err)
 		}
 	}()
 
@@ -79,10 +82,10 @@ func Run(ctx context.Context) error {
 	weatherJob := jobs.NewWeatherUpdateJob(repo, publisher, weatherClient)
 	go weatherJob.StartPeriodic(ctx)
 
-	log.Println("Subscription Service is running.")
+	observability.Infof("Subscription Service is running.")
 
 	<-ctx.Done()
-	log.Println("Subscription Service shutting down...")
+	observability.Infof("Subscription Service shutting down...")
 
 	return nil
 }
