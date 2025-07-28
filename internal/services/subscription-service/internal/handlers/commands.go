@@ -11,6 +11,12 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	subscribeCommand = "subscribe"
+	confirmCommand   = "confirm"
+	unsubscribeCommand = "unsubscribe"
+)
+
 type subscriptionRepositoryManager interface {
     CreateSubscription(ctx context.Context, sub *subscriptions.Subscription) error
     ConfirmByToken(ctx context.Context, token string) error
@@ -121,9 +127,9 @@ type dispatcher struct {
 func NewDispatcher(repo subscriptionRepositoryManager, publisher eventPublisherManager) *dispatcher {
 	return &dispatcher{
 		handlers: map[string]commandHandler{
-			"subscribe":   &SubscribeHandler{repo: repo, publisher: publisher},
-			"confirm":     &ConfirmHandler{repo: repo, publisher: publisher},
-			"unsubscribe": &UnsubscribeHandler{repo: repo, publisher: publisher},
+			subscribeCommand:   &SubscribeHandler{repo: repo, publisher: publisher},
+			confirmCommand:     &ConfirmHandler{repo: repo, publisher: publisher},
+			unsubscribeCommand: &UnsubscribeHandler{repo: repo, publisher: publisher},
 		},
 	}
 }

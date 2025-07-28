@@ -7,6 +7,10 @@ import (
 	"notification-service/internal/notifier"
 )
 
+const (
+	emailChannel = "email"
+)
+
 func parseEvent[T any](message []byte) (T, error) {
 	var event T
 	if err := json.Unmarshal(message, &event); err != nil {
@@ -46,7 +50,7 @@ func (h *WeatherUpdateHandler) Handle(message []byte) error {
 	if err != nil {
 		return err
 	}
-	return h.notificationService.SendWeatherUpdate("email", event.Email, event.Metrics)
+	return h.notificationService.SendWeatherUpdate(emailChannel, event.Email, event.Metrics)
 }
 
 type SubscriptionConfirmedHandler struct {
@@ -64,7 +68,7 @@ func (h *SubscriptionConfirmedHandler) Handle(message []byte) error {
 	if err != nil {
 		return err
 	}
-	return h.notificationService.SendConfirmation("email", event.Email, event.Token)
+	return h.notificationService.SendConfirmation(emailChannel, event.Email, event.Token)
 }
 
 type SubscriptionCancelledHandler struct {
@@ -82,5 +86,5 @@ func (h *SubscriptionCancelledHandler) Handle(message []byte) error {
 	if err != nil {
 		return err
 	}
-	return h.notificationService.SendUnsubscribe("email", event.Email, event.City)
+	return h.notificationService.SendUnsubscribe(emailChannel, event.Email, event.City)
 }

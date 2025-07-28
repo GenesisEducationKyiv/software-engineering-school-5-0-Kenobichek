@@ -19,6 +19,10 @@ import (
 	"subscription-service/internal/weatherclient"
 )
 
+const (
+	subscriptionServiceGroupID = "subscription-service"
+)
+
 func Run(ctx context.Context) error {
 	log.Println("Subscription Service starting...")
 
@@ -63,7 +67,7 @@ func Run(ctx context.Context) error {
 	consumer := infrastructure.NewKafkaConsumer(
 		cfg.Kafka.Brokers,
 		topics,
-		"subscription-service",
+		subscriptionServiceGroupID,
 		eventHandler,
 	)
 	go consumer.Start(ctx)

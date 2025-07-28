@@ -10,6 +10,10 @@ import (
 	"api-gateway/proto"
 )
 
+const (
+	defaultRequestTimeout = 5 * time.Second
+)
+
 type weatherClientManager interface {
 	GetWeather(ctx context.Context, req *proto.WeatherRequest) (*proto.WeatherResponse, error)
 }
@@ -30,7 +34,7 @@ func (h *WeatherHandler) WeatherProxyHandler(w http.ResponseWriter, r *http.Requ
 		log.Printf("[WeatherProxyHandler] missing city parameter")
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), defaultRequestTimeout)
 	defer cancel()
 	resp, err := h.weatherClient.GetWeather(ctx, &proto.WeatherRequest{City: city})
 	if err != nil {
