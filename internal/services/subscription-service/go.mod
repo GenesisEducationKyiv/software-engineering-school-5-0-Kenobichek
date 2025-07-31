@@ -15,6 +15,7 @@ require (
 	github.com/klauspost/compress v1.15.11 // indirect
 	github.com/pierrec/lz4/v4 v4.1.16 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/net v0.40.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
@@ -30,4 +31,5 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/segmentio/kafka-go v0.4.48
 	go.uber.org/atomic v1.7.0 // indirect
+	go.uber.org/zap v1.27.0
 )

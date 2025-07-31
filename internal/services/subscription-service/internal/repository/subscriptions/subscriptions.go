@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 )
@@ -83,7 +82,7 @@ func (r *Repository) GetDueSubscriptions(ctx context.Context) ([]Subscription, e
 	}
 	defer func() {
 		if err := rows.Close(); err != nil {
-			log.Printf("failed to close rows: %v", err)
+			return
 		}
 	}()
 	

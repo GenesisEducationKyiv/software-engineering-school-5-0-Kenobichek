@@ -3,7 +3,6 @@ package infrastructure
 import (
 	"context"
 	"errors"
-	"log"
 	"sync"
 	"time"
 
@@ -19,6 +18,13 @@ const (
 	commitInterval = 0
 )
 
+type loggerManager interface {
+	Info(msg string, keysAndValues ...interface{})
+	Error(msg string, keysAndValues ...interface{})
+	Debug(msg string, keysAndValues ...interface{})
+	Sync() error
+}
+
 type EventHandler func(ctx context.Context, topic string, message []byte) error
 
 type KafkaConsumer struct {
@@ -26,14 +32,16 @@ type KafkaConsumer struct {
 	topics  []string
 	groupID string
 	handler EventHandler
+	logger loggerManager
 }
 
-func NewKafkaConsumer(brokers, topics []string, groupID string, handler EventHandler) *KafkaConsumer {
+func NewKafkaConsumer(brokers, topics []string, groupID string, handler EventHandler, logger loggerManager) *KafkaConsumer {
 	return &KafkaConsumer{
 		brokers: brokers,
 		topics:  topics,
 		groupID: groupID,
 		handler: handler,
+		logger: logger,
 	}
 }
 
@@ -63,7 +71,7 @@ func (c *KafkaConsumer) consumeTopicWithRetries(ctx context.Context, topic strin
 	for {
 		err := c.consumeTopic(ctx, topic)
 		if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
-			log.Printf("[WARN] consumer for topic %s failed: %v, retrying in %v", topic, err, retryDelay)
+			c.logger.Info("consumer for topic %s failed: %v, retrying in %v", topic, err, retryDelay)
 			select {
 			case <-time.After(retryDelay):
 				retryDelay *= 2
@@ -71,7 +79,7 @@ func (c *KafkaConsumer) consumeTopicWithRetries(ctx context.Context, topic strin
 					retryDelay = maxRetryDelay
 				}
 			case <-ctx.Done():
-				log.Printf("[INFO] context cancelled during retry wait for topic %s", topic)
+				c.logger.Info("[INFO] context cancelled during retry wait for topic %s", topic)
 				return
 			}
 			continue
@@ -91,7 +99,7 @@ func (c *KafkaConsumer) consumeTopic(ctx context.Context, topic string) error {
 	})
 	defer func() {
 		if err := r.Close(); err != nil {
-			log.Printf("[ERROR] failed to close kafka reader for topic %s: %v", topic, err)
+			c.logger.Error("failed to close kafka reader for topic %s: %v", topic, err)
 		}
 	}()
 
@@ -99,25 +107,25 @@ func (c *KafkaConsumer) consumeTopic(ctx context.Context, topic string) error {
 		m, err := r.FetchMessage(ctx)
 		if err != nil {
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-				log.Printf("[INFO] consumer for topic %s stopped due to context: %v", topic, err)
+				c.logger.Info("consumer for topic %s stopped due to context: %v", topic, err)
 				return err
 			}
 
-			log.Printf("[ERROR] kafka fetch error for topic %s: %v", topic, err)
+			c.logger.Info("kafka fetch error for topic %s: %v", topic, err)
 			return err
 		}
 
-		log.Printf("[KAFKA CONSUMER] received event from topic %s, partition %d, offset %d", topic, m.Partition, m.Offset)
+		c.logger.Info("received event from topic %s, partition %d, offset %d", topic, m.Partition, m.Offset)
 
 		if c.handler != nil {
 			if err := c.processWithRetry(ctx, topic, m.Value); err != nil {
-				log.Printf("[ERROR] handler failed for topic %s: %v", topic, err)
+				c.logger.Info("handler failed for topic %s: %v", topic, err)
 				continue
 			}
 		}
 
 		if err := r.CommitMessages(ctx, m); err != nil {
-			log.Printf("[ERROR] failed to commit message for topic %s: %v", topic, err)
+			c.logger.Info("failed to commit message for topic %s: %v", topic, err)
 			return err
 		}
 	}
@@ -133,7 +141,7 @@ func (c *KafkaConsumer) processWithRetry(ctx context.Context, topic string, msg 
 			return nil
 		}
 		lastErr = err
-		log.Printf("[WARN] handler error (attempt %d/%d) for topic %s: %v", i+1, maxHandlerRetryAttempts, topic, err)
+		c.logger.Info("handler error (attempt %d/%d) for topic %s: %v", i+1, maxHandlerRetryAttempts, topic, err)
 
 		select {
 		case <-time.After(delay):
