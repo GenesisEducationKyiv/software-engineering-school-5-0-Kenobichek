@@ -48,12 +48,14 @@ type loggerManager interface {
 func Run(ctx context.Context, logger loggerManager) error {
 	logger.Info("Subscription Service starting...")
 
-    cfg, err := config.MustLoad()
-    if err != nil {
-        return fmt.Errorf("load config: %w", err)
-    }
+	cfg, err := config.MustLoad()
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
 
-    metrics.Register()
+	if err := metrics.Register(); err != nil {
+		logger.Error("failed to register metrics", "error", err)
+	}
 
 	mux := http.NewServeMux()
 	mux.Handle(metricsPath, promhttp.Handler())
@@ -66,13 +68,13 @@ func Run(ctx context.Context, logger loggerManager) error {
 		IdleTimeout:  metricsIdleTimeout,
 	}
 	
-    go func() {
-        logger.Info("metrics endpoint listening", "addr", fmt.Sprintf(":%d", cfg.Observability.VictoriaMetricsPort))
-        if err := metricsServer.ListenAndServe(); 
+	go func() {
+		logger.Info("metrics endpoint listening", "addr", fmt.Sprintf(":%d", cfg.Observability.VictoriaMetricsPort))
+		if err := metricsServer.ListenAndServe(); 
 			err != nil && err != http.ErrServerClosed {
-            logger.Error("metrics server error: %v", err)
-        }
-    }()
+			logger.Error("metrics server error: %v", err)
+		}
+	}()
 
 	dbManager := infrastructure.NewDBManager(nil, logger)
 	if err := dbManager.InitDB(cfg.GetDatabaseDSN()); err != nil {

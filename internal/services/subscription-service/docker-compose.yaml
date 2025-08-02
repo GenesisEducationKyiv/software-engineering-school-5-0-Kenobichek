@@ -47,9 +47,13 @@ services:
       - '--promscrape.config.strictParse=false'
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
     ports:
       - "${VICTORIA_METRICS_PORT:-8428}:8428"
-    networks:
+    networks: 
       weather-net:
         aliases:
           - victoria-metrics
@@ -62,6 +66,8 @@ services:
       - ./grafana-provisioning/dashboards:/var/lib/grafana/dashboards:ro
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
     ports:
       - "${GRAFANA_PORT}:3000"
     depends_on:

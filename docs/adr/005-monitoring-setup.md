@@ -24,7 +24,6 @@ To ensure effective monitoring and operational insight, the Subscription Service
 
 ## Access URLs
 
-* VictoriaMetrics UI: `http://localhost:$VICTORIA_PORT`
 * Grafana: `http://localhost:$GRAFANA_PORT` (login/password: `admin/admin`)
 * Service metrics: `http://localhost:$VICTORIA_METRICS_PORT/metrics`
 
