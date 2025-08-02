@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+
 	"subscription-service/internal/app"
 	"subscription-service/internal/observability/logger"
 )

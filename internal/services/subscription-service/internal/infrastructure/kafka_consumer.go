@@ -35,7 +35,12 @@ type KafkaConsumer struct {
 	logger loggerManager
 }
 
-func NewKafkaConsumer(brokers, topics []string, groupID string, handler EventHandler, logger loggerManager) *KafkaConsumer {
+func NewKafkaConsumer(
+	brokers, topics []string,
+	groupID string,
+	handler EventHandler,
+	logger loggerManager,
+) *KafkaConsumer {
 	return &KafkaConsumer{
 		brokers: brokers,
 		topics:  topics,

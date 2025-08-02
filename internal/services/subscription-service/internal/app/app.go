@@ -5,9 +5,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
+	"subscription-service/internal/observability/metrics"
 	"syscall"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"subscription-service/config"
 	"subscription-service/internal/domain"
@@ -20,6 +25,11 @@ import (
 
 const (
 	subscriptionServiceGroupID = "subscription-service"
+
+	metricsPath = "/metrics"
+	metricsReadTimeout = 5 * time.Second
+	metricsWriteTimeout = 10 * time.Second
+	metricsIdleTimeout = 120 * time.Second
 )
 
 type dbManagerImpl interface {
@@ -38,10 +48,31 @@ type loggerManager interface {
 func Run(ctx context.Context, logger loggerManager) error {
 	logger.Info("Subscription Service starting...")
 
-	cfg, err := config.MustLoad()
-	if err != nil {
-		return fmt.Errorf("load config: %w", err)
+    cfg, err := config.MustLoad()
+    if err != nil {
+        return fmt.Errorf("load config: %w", err)
+    }
+
+    metrics.Register()
+
+	mux := http.NewServeMux()
+	mux.Handle(metricsPath, promhttp.Handler())
+
+	metricsServer := &http.Server{
+		Addr:         fmt.Sprintf(":%d", cfg.Observability.VictoriaMetricsPort),
+		Handler:      mux,
+		ReadTimeout:  metricsReadTimeout,
+		WriteTimeout: metricsWriteTimeout,
+		IdleTimeout:  metricsIdleTimeout,
 	}
+	
+    go func() {
+        logger.Info("metrics endpoint listening", "addr", fmt.Sprintf(":%d", cfg.Observability.VictoriaMetricsPort))
+        if err := metricsServer.ListenAndServe(); 
+			err != nil && err != http.ErrServerClosed {
+            logger.Error("metrics server error: %v", err)
+        }
+    }()
 
 	dbManager := infrastructure.NewDBManager(nil, logger)
 	if err := dbManager.InitDB(cfg.GetDatabaseDSN()); err != nil {

@@ -1,0 +1,30 @@
+{
+  "title": "Subscription Service Metrics",
+  "schemaVersion": 37,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Active Subscriptions",
+      "datasource": "VictoriaMetrics",
+      "targets": [
+        {"expr": "subscription_service_active_subscriptions", "refId": "A"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Subscriptions Created Rate",
+      "datasource": "VictoriaMetrics",
+      "targets": [
+        {"expr": "rate(subscription_service_subscriptions_created_total[1m])", "refId": "A"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Subscription Creation Errors Rate",
+      "datasource": "VictoriaMetrics",
+      "targets": [
+        {"expr": "rate(subscription_service_subscription_creation_errors_total[1m])", "refId": "A"}
+      ]
+    }
+  ]
+}

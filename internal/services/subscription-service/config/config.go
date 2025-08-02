@@ -59,7 +59,15 @@ func validate(cfg *Config) error {
 	if cfg.Kafka.EventTopic == "" {
 		errors = append(errors, "KAFKA_EVENT_TOPIC is required")
 	}
-	if len(errors) > 0 {
+
+	if cfg.Observability.VictoriaMetricsPort == 0 {
+        errors = append(errors, "VICTORIA_METRICS_PORT is required")
+    }
+    if cfg.Observability.GrafanaPort == 0 {
+        errors = append(errors, "GRAFANA_PORT is required")
+    }
+
+    if len(errors) > 0 {
 		return fmt.Errorf("config validation errors:\n- %s", strings.Join(errors, "\n- "))
 	}
 	return nil

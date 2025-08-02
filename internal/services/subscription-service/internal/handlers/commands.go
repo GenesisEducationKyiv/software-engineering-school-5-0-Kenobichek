@@ -134,12 +134,28 @@ type dispatcher struct {
 	logger loggerManager
 }
 
-func NewDispatcher(repo subscriptionRepositoryManager, publisher eventPublisherManager, logger loggerManager) *dispatcher {
+func NewDispatcher(
+	repo subscriptionRepositoryManager,
+	publisher eventPublisherManager,
+	logger loggerManager,
+) *dispatcher {
 	return &dispatcher{
 		handlers: map[string]commandHandler{
-			subscribeCommand:   &SubscribeHandler{repo: repo, publisher: publisher, logger: logger},
-			confirmCommand:     &ConfirmHandler{repo: repo, publisher: publisher, logger: logger},
-			unsubscribeCommand: &UnsubscribeHandler{repo: repo, publisher: publisher, logger: logger},
+			subscribeCommand:   &SubscribeHandler{
+				repo:      repo,
+				publisher: publisher,
+				logger:    logger,
+			},
+			confirmCommand:     &ConfirmHandler{
+				repo:      repo,
+				publisher: publisher,
+				logger:    logger,
+			},
+			unsubscribeCommand: &UnsubscribeHandler{
+				repo:      repo,
+				publisher: publisher,
+				logger:    logger,
+			},
 		},
 		logger: logger,
 	}

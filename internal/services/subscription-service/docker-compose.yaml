@@ -23,7 +23,7 @@ services:
   subscription-service:
     build: 
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: subscription-service
     env_file:
       - .env
@@ -32,9 +32,40 @@ services:
         condition: service_healthy
     ports:
       - "${PORT}:${PORT}"
+
     restart: unless-stopped
     volumes:
       - ./:/app
+    networks:
+      - weather-net
+
+  victoria-metrics:
+    image: victoriametrics/victoria-metrics:v1.96.0
+    container_name: victoria-metrics
+    command:
+      - '--promscrape.config=/etc/prometheus/prometheus.yml'
+      - '--promscrape.config.strictParse=false'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "${VICTORIA_METRICS_PORT:-8428}:8428"
+    networks:
+      weather-net:
+        aliases:
+          - victoria-metrics
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: grafana
+    volumes:
+      - ./grafana-provisioning:/etc/grafana/provisioning
+      - ./grafana-provisioning/dashboards:/var/lib/grafana/dashboards:ro
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    depends_on:
+      - victoria-metrics
     networks:
       - weather-net
 

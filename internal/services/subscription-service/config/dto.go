@@ -22,11 +22,17 @@ type KafkaConfig struct {
 	CommandTopic string `envconfig:"KAFKA_COMMAND_TOPIC" required:"true" default:"commands.subscription"`
 }
 
+type ObservabilityConfig struct {
+	VictoriaMetricsPort int `envconfig:"VICTORIA_METRICS_PORT" required:"true" default:"8428"`
+	GrafanaPort int `envconfig:"GRAFANA_PORT" required:"true" default:"3000"`
+}
+
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	Kafka    KafkaConfig
 	WeatherServiceAddr string `envconfig:"WEATHER_SERVICE_ADDR" required:"true" default:"weather-service:8081"`
+	Observability ObservabilityConfig
 }
 
 func (c *Config) GetDatabaseDSN() string {
