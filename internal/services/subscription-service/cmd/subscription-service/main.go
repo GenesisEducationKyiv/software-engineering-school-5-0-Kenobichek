@@ -21,6 +21,6 @@ func main() {
 	}()
 	
 	if err := app.Run(ctx, logger); err != nil {
-		logger.Error("service exited with error: %v", err)
+		logger.Errorf("service exited with error: %v", err)
 	}
 }

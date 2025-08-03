@@ -1,27 +1,21 @@
 package logger
 
 import (
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"os"
 	"time"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 const (
-	logInterval 			= time.Second
-	initialLogBurst			= 100
-	sampleRateAfterBurst	= 100	
+	logInterval          = time.Second
+	initialLogBurst      = 100
+	sampleRateAfterBurst = 100
 )
 
-type sugarManager interface {
-	Infof(msg string, keysAndValues ...interface{})
-	Errorf(msg string, keysAndValues ...interface{})
-	Debugf(msg string, keysAndValues ...interface{})
-	Sync() error
-}
-
 type zapLogger struct {
-	sugar sugarManager
+	sugar *zap.SugaredLogger
 }
 
 func NewZapLogger() (*zapLogger, error) {
@@ -51,16 +45,20 @@ func NewZapLogger() (*zapLogger, error) {
 	return &zapLogger{sugar: sugar}, nil
 }
 
-func (z *zapLogger) Info(msg string, keysAndValues ...interface{}) {
-	z.sugar.Infof(msg, keysAndValues...)
+func (z *zapLogger) Debugf(format string, args ...interface{}) {
+	z.sugar.Debugf(format, args...)
 }
 
-func (z *zapLogger) Error(msg string, keysAndValues ...interface{}) {
-	z.sugar.Errorf(msg, keysAndValues...)
+func (z *zapLogger) Infof(format string, args ...interface{}) {
+	z.sugar.Infof(format, args...)
 }
 
-func (z *zapLogger) Debug(msg string, keysAndValues ...interface{}) {
-	z.sugar.Debugf(msg, keysAndValues...)
+func (z *zapLogger) Errorf(format string, args ...interface{}) {
+	z.sugar.Errorf(format, args...)
+}
+
+func (z *zapLogger) With(keysAndValues ...interface{}) *zapLogger {
+	return &zapLogger{sugar: z.sugar.With(keysAndValues...)}
 }
 
 func (z *zapLogger) Sync() error {

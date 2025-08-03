@@ -23,10 +23,9 @@ type weatherClientManager interface {
 }
 
 type loggerManager interface {
-	Info(msg string, keysAndValues ...interface{})
-	Error(msg string, keysAndValues ...interface{})
-	Debug(msg string, keysAndValues ...interface{})
-	Sync() error
+	Infof(format string, args ...interface{})
+	Errorf(format string, args ...interface{})
+	Debugf(format string, args ...interface{})
 }
 
 type WeatherUpdateJob struct {
@@ -53,13 +52,13 @@ func NewWeatherUpdateJob(
 func (j *WeatherUpdateJob) Run(ctx context.Context) {
 	subscriptions, err := j.repo.GetDueSubscriptions(ctx)
 	if err != nil {
-		j.logger.Error("[WeatherUpdateJob] failed to get due subscriptions: %v", err)
+		j.logger.Errorf("failed to get due subscriptions: %v", err)
 		return
 	}
 	for _, s := range subscriptions {
 		weatherResp, err := j.weatherClient.GetWeather(ctx, &proto.WeatherRequest{City: s.City})
 		if err != nil {
-			j.logger.Error("[WeatherUpdateJob] failed to get weather for city=%s: %v", s.City, err)
+			j.logger.Errorf("failed to get weather for city=%s: %v", s.City, err)
 			continue
 		}
 		event := domain.WeatherUpdateEvent{
@@ -74,11 +73,11 @@ func (j *WeatherUpdateJob) Run(ctx context.Context) {
 		}
 
 		if err := j.publisher.PublishWithTopic(ctx, "weather.updated", event); err != nil {
-			j.logger.Error("[WeatherUpdateJob] failed to publish weather update for user=%d: %v", s.ID, err)
+			j.logger.Errorf("failed to publish weather update for user=%d: %v", s.ID, err)
 		}
 
 		if err := j.repo.UpdateNextNotification(ctx, int64(s.ID), time.Now()); err != nil {
-			j.logger.Error("[WeatherUpdateJob] failed to update next notification for user=%d: %v", s.ID, err)
+			j.logger.Errorf("failed to update next notification for user=%d: %v", s.ID, err)
 		}
 	}
 }
@@ -92,7 +91,7 @@ func (j *WeatherUpdateJob) StartPeriodic(ctx context.Context) {
 		case <-ticker.C:
 			j.Run(ctx)
 		case <-ctx.Done():
-			j.logger.Info("[WeatherUpdateJob] stopped")
+			j.logger.Infof("WeatherUpdateJob stopped")
 			return
 		}
 	}

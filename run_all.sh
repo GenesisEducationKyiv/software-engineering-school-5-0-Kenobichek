@@ -3,7 +3,7 @@
 set -e
 
 # Start all services in detached mode
-echo "Starting Kafka and Zookeeper..."
+echo "Starting Kafka..."
 docker-compose -f docker-compose.kafka.yaml up -d
 
 echo "Starting weather-service..."
@@ -22,7 +22,7 @@ echo "All services are up and running!"
 echo
 
 # Show logs for all services in parallel
-# echo "Kafka and Zookeeper logs:"
+# echo "Kafka logs:"
 # docker-compose -f docker-compose.kafka.yaml logs -f &
 
 echo "weather-service logs:"

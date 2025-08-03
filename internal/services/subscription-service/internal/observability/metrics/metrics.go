@@ -39,42 +39,23 @@ func Register() error {
 		return nil
 	}
 
-	err := prometheus.Register(ActiveSubscriptions)
-	if err != nil {
-		if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
-			return fmt.Errorf("failed to register ActiveSubscriptions: %w", err)
-		}
+	metrics := []prometheus.Collector{
+		ActiveSubscriptions,
+		SubscriptionsCreated,
+		SubscriptionCreationErrors,
+		collectors.NewGoCollector(),
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 	}
-
-	err = prometheus.Register(SubscriptionsCreated)
-	if err != nil {
-		if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
-			return fmt.Errorf("failed to register SubscriptionsCreated: %w", err)
-		}
-	}
-
-	err = prometheus.Register(SubscriptionCreationErrors)
-	if err != nil {
-		if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
-			return fmt.Errorf("failed to register SubscriptionCreationErrors: %w", err)
-		}
-	}
-
-	if !registered {
-		if err := prometheus.Register(collectors.NewGoCollector()); err != nil {
-			if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
-				return fmt.Errorf("failed to register Go collector: %w", err)
-			}
-		}
-
-		if err := prometheus.Register(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{})); err != nil {
-			if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
-				return fmt.Errorf("failed to register process collector: %w", err)
-			}
-		}
 		
-		registered = true
+	for _, metric := range metrics {
+		if err := prometheus.Register(metric); err != nil {
+			if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
+				return fmt.Errorf("failed to register metric %T: %w", metric, err)
+			}
+		}
 	}
-
+	
+	registered = true
+	
 	return nil
 }

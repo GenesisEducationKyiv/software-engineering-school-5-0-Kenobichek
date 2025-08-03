@@ -39,14 +39,14 @@ type dbManagerImpl interface {
 }
 
 type loggerManager interface {
-	Info(msg string, keysAndValues ...interface{})
-	Error(msg string, keysAndValues ...interface{})
-	Debug(msg string, keysAndValues ...interface{})
+	Infof(format string, args ...interface{})
+	Errorf(format string, args ...interface{})
+	Debugf(format string, args ...interface{})
 	Sync() error
 }
 
 func Run(ctx context.Context, logger loggerManager) error {
-	logger.Info("Subscription Service starting...")
+	logger.Infof("Subscription Service starting...")
 
 	cfg, err := config.MustLoad()
 	if err != nil {
@@ -54,7 +54,7 @@ func Run(ctx context.Context, logger loggerManager) error {
 	}
 
 	if err := metrics.Register(); err != nil {
-		logger.Error("failed to register metrics", "error", err)
+		logger.Errorf("failed to register metrics", "error", err)
 	}
 
 	mux := http.NewServeMux()
@@ -68,11 +68,12 @@ func Run(ctx context.Context, logger loggerManager) error {
 		IdleTimeout:  metricsIdleTimeout,
 	}
 	
+	metricsServerErr := make(chan error, 1)
 	go func() {
-		logger.Info("metrics endpoint listening", "addr", fmt.Sprintf(":%d", cfg.Observability.VictoriaMetricsPort))
+		logger.Infof("metrics endpoint listening", "addr", fmt.Sprintf(":%d", cfg.Observability.VictoriaMetricsPort))
 		if err := metricsServer.ListenAndServe(); 
 			err != nil && err != http.ErrServerClosed {
-			logger.Error("metrics server error: %v", err)
+			metricsServerErr <- fmt.Errorf("metrics server error: %w", err)
 		}
 	}()
 
@@ -82,7 +83,7 @@ func Run(ctx context.Context, logger loggerManager) error {
 	}
 	defer func() {
 		if err := dbManager.GetDB().Close(); err != nil {
-			logger.Error("db close error: %v", err)
+			logger.Errorf("db close error: %v", err)
 		}
 	}()
 
@@ -94,7 +95,7 @@ func Run(ctx context.Context, logger loggerManager) error {
 	publisher := infrastructure.NewKafkaPublisher(cfg.Kafka.Brokers, cfg.Kafka.EventTopic)
 	defer func() {
 		if err := publisher.Close(); err != nil {
-			logger.Error("publisher close error: %v", err)
+			logger.Errorf("publisher close error: %v", err)
 		}
 	}()
 
@@ -116,25 +117,58 @@ func Run(ctx context.Context, logger loggerManager) error {
 		eventHandler,
 		logger,
 	)
-	go consumer.Start(ctx)
+	consumerDone := consumer.Start(ctx)
 
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	weatherClient, err := weatherclient.New(cfg.WeatherServiceAddr)
 	if err != nil {
-		logger.Error("failed to init weather client: %v", err)
+		logger.Errorf("failed to init weather client: %v", err)
 		return fmt.Errorf("failed to init weather client: %w", err)
 	}
 
 	weatherJob := jobs.NewWeatherUpdateJob(repo, publisher, weatherClient, logger)
 	go weatherJob.StartPeriodic(ctx)
 
-	logger.Info("Subscription Service is running.")
+	logger.Infof("Subscription Service is running.")
 
 	<-ctx.Done()
-	logger.Info("Subscription Service shutting down...")
+	logger.Infof("Subscription Service shutting down...")
 
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	logger.Infof("Shutting down metrics server...")
+	if err := metricsServer.Shutdown(shutdownCtx); err != nil {
+		logger.Errorf("metrics server shutdown error", "error", err)
+	}
+	select {
+	case err := <-metricsServerErr:
+		logger.Errorf("metrics server error", "error", err)
+	default:
+	}
+
+	logger.Infof("Waiting for Kafka consumer to finish...")
+	select {
+	case <-consumerDone:
+		logger.Infof("Kafka consumer stopped")
+	case <-shutdownCtx.Done():
+		logger.Errorf("Kafka consumer shutdown timeout", "error", shutdownCtx.Err())
+	}
+
+	logger.Infof("Weather job stopped (by context)")
+
+	logger.Infof("Kafka publisher closed (deferred)")
+
+	logger.Infof("DB connection closed (deferred)")
+
+	logger.Infof("Flushing logger...")
+	if err := logger.Sync(); err != nil {
+		logger.Errorf("logger sync error", "error", err)
+	}
+
+	logger.Infof("Graceful shutdown completed")
 	return nil
 }
 
