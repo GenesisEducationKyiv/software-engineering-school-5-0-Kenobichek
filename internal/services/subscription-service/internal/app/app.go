@@ -54,7 +54,7 @@ func Run(ctx context.Context, logger loggerManager) error {
 	}
 
 	if err := metrics.Register(); err != nil {
-		logger.Errorf("failed to register metrics", "error", err)
+		logger.Errorf("failed to register metrics: %v", err)
 	}
 
 	mux := http.NewServeMux()
@@ -141,11 +141,11 @@ func Run(ctx context.Context, logger loggerManager) error {
 
 	logger.Infof("Shutting down metrics server...")
 	if err := metricsServer.Shutdown(shutdownCtx); err != nil {
-		logger.Errorf("metrics server shutdown error", "error", err)
+		logger.Errorf("metrics server shutdown error: %v", err)
 	}
 	select {
 	case err := <-metricsServerErr:
-		logger.Errorf("metrics server error", "error", err)
+		logger.Errorf("metrics server error: %v", err)
 	default:
 	}
 
@@ -154,7 +154,7 @@ func Run(ctx context.Context, logger loggerManager) error {
 	case <-consumerDone:
 		logger.Infof("Kafka consumer stopped")
 	case <-shutdownCtx.Done():
-		logger.Errorf("Kafka consumer shutdown timeout", "error", shutdownCtx.Err())
+		logger.Errorf("Kafka consumer shutdown timeout: %v", shutdownCtx.Err())
 	}
 
 	logger.Infof("Weather job stopped (by context)")
@@ -165,7 +165,7 @@ func Run(ctx context.Context, logger loggerManager) error {
 
 	logger.Infof("Flushing logger...")
 	if err := logger.Sync(); err != nil {
-		logger.Errorf("logger sync error", "error", err)
+		logger.Errorf("logger sync error: %v", err)
 	}
 
 	logger.Infof("Graceful shutdown completed")
