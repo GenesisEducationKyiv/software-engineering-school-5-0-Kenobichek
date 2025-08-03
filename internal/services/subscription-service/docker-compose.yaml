@@ -23,7 +23,7 @@ services:
   subscription-service:
     build: 
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     container_name: subscription-service
     env_file:
       - .env
