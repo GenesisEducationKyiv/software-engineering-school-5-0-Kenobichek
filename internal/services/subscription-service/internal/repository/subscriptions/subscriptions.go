@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"subscription-service/internal/observability/metrics"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 )
@@ -32,10 +32,18 @@ func (r *Repository) CreateSubscription(ctx context.Context, sub *Subscription) 
 		sub.ChannelType, sub.ChannelValue, sub.City,
 		sub.FrequencyMinutes, sub.Token, sub.FrequencyMinutes,
 	)
-	if err != nil && strings.Contains(err.Error(), "unique") {
-		return errors.New("already subscribed")
+
+	if err != nil {
+		metrics.SubscriptionCreationErrors.Inc()
+		if strings.Contains(err.Error(), "unique") {
+			return errors.New("already subscribed")
+		}
+		return err
 	}
-	return err
+
+	metrics.SubscriptionsCreated.Inc()
+	metrics.ActiveSubscriptions.Inc()
+	return nil
 }
 
 func (r *Repository) ConfirmByToken(ctx context.Context, token string) error {
@@ -68,14 +76,16 @@ func (r *Repository) UnsubscribeByToken(ctx context.Context, token string) error
 	if rows == 0 {
 		return errors.New("subscription not found")
 	}
+
+	metrics.ActiveSubscriptions.Dec()
 	return nil
 }
 
 func (r *Repository) GetDueSubscriptions(ctx context.Context) ([]Subscription, error) {
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT id, channel_type, channel_value, city, frequency_minutes
-		 FROM subscriptions
-		 WHERE confirmed = TRUE AND next_notified_at <= NOW()`,
+		FROM subscriptions
+		WHERE confirmed = TRUE AND next_notified_at <= NOW()`,
 	)
 	var subs []Subscription
 	if err != nil {
@@ -83,7 +93,7 @@ func (r *Repository) GetDueSubscriptions(ctx context.Context) ([]Subscription, e
 	}
 	defer func() {
 		if err := rows.Close(); err != nil {
-			log.Printf("failed to close rows: %v", err)
+			return
 		}
 	}()
 	
