@@ -1,47 +1,49 @@
-# Weather-Forecast-API
-Weather Subscription API – A simple API that lets users subscribe to weather updates for their city. Built for Genesis Software Engineering School 5.0.
+# Weather Subscription Platform
 
----
+Full-featured weather subscription platform composed of four Go microservices with Kafka as the message bus.
 
-## Quick Start
+## 🚀 Quick Start
 
-To start all microservices and Kafka, simply run:
+### Requirements
+
+- Docker & Docker Compose
+- Go 1.21+ (for development)
+
+### Start all services with one script
+
+1. Create a `.env` file based on `.env.example`
+2. Run the services:
 
 ```bash
 ./run_all.sh
 ```
 
-This script will automatically start all required containers and display logs for all services.
+After the script finishes, services are available at:
+- API-Gateway: http://localhost:8080
+- weather-service: http://localhost:8081
+- subscription-service: http://localhost:8082
+- notification-service: http://localhost:8083
+- Grafana: http://localhost:3000
+- Prometheus: http://localhost:9090
+- Database (PostgreSQL): localhost:5433
+
+## 🏗️ Architecture
+
+- **api-gateway** – single REST entry point
+- **weather-service** – fetches & caches weather data
+- **subscription-service** – manages subscriptions (PostgreSQL)
+- **notification-service** – sends email notifications
+
+## 📜 Helper Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `run_all.sh` | Start **all** services (Kafka + 4 microservices) via multiple Docker-Compose files |
+| `lint_all.sh` | Run Go linters across the entire workspace |
+| `test_all.sh` | Execute unit tests for every service |
 
 ---
 
-### Monitoring Setup
+## 📝 License
 
-The project includes Redis monitoring with Prometheus and Grafana.
-
-#### Quick Start
-
-```shell script
-# Start monitoring stack
-docker-compose up -d redis redis-exporter prometheus grafana
-
-# Test the setup
-./monitoring/test-redis-metrics.sh
-```
-
-For detailed monitoring documentation, see [ADR 003: Redis Monitoring Setup](docs/adr/003-redis-monitoring-setup.md).
-
----
-
-### Running Tests
-
-Prerequisites: Go ≥ 1.21 installed.
-
-Command | What it runs
-------- | ------------
-`go test -v -short ./...` | Unit tests (fast, in-memory)
-`go test -v -tags=integration ./tests/integration/...` | Integration tests (needs deps)
-`go test -v -tags=e2e ./tests/e2e/...` | End-to-End tests
-`go test -v ./...` | Everything
-
-CI runs the same sequence: unit → integration → e2e.
+This project is part of the Genesis Software Engineering School 5.0 curriculum.
