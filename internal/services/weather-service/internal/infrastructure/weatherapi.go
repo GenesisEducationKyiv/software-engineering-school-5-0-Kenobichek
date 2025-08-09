@@ -1,0 +1,73 @@
+package infrastructure
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"net/url"
+
+	"internal/services/weather-service/internal/domain"
+)
+
+type WeatherAPIProvider struct {
+	httpClient httpClientManager
+	apiurl     string
+	apikey     string
+}
+
+func NewWeatherAPIProvider(httpClient httpClientManager, apiurl, apikey string) *WeatherAPIProvider {
+	return &WeatherAPIProvider{
+		httpClient: httpClient,
+		apiurl:     apiurl,
+		apikey:     apikey,
+	}
+}
+
+func (w *WeatherAPIProvider) GetWeather(ctx context.Context, city string) (domain.Metrics, error) {
+	weatherURL := fmt.Sprintf("%s?key=%s&q=%s", w.apiurl, w.apikey, url.QueryEscape(city))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, weatherURL, http.NoBody)
+	if err != nil {
+		return domain.Metrics{}, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := w.httpClient.Do(req)
+	if err != nil {
+		return domain.Metrics{}, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("failed to close response body: %v", err)
+		}
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		return domain.Metrics{}, fmt.Errorf("API returned status code: %d", resp.StatusCode)
+	}
+
+	var data struct {
+		Location struct {
+			Name string `json:"name"`
+		} `json:"location"`
+		Current struct {
+			TempC     float64 `json:"temp_c"`
+			Humidity  float64 `json:"humidity"`
+			Condition struct {
+				Text string `json:"text"`
+			} `json:"condition"`
+		} `json:"current"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return domain.Metrics{}, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return domain.Metrics{
+		Temperature: data.Current.TempC,
+		Humidity:    data.Current.Humidity,
+		Description: data.Current.Condition.Text,
+		City:        data.Location.Name,
+	}, nil
+}

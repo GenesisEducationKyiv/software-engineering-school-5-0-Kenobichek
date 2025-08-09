@@ -1,0 +1,59 @@
+{
+  "title": "Subscription Service Metrics",
+  "schemaVersion": 37,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Go Goroutines",
+      "datasource": "VictoriaMetrics",
+      "targets": [
+        {"expr": "go_goroutines", "refId": "A"}
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+    },
+    {
+      "type": "timeseries",
+      "title": "Heap Allocated (bytes)",
+      "datasource": "VictoriaMetrics",
+      "unit": "bytes",
+      "targets": [
+        {"expr": "go_memstats_heap_alloc_bytes", "refId": "A"}
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+    },
+    {
+      "type": "timeseries",
+      "title": "Process CPU %",
+      "datasource": "VictoriaMetrics",
+      "unit": "percentunit",
+      "targets": [
+        {"expr": "rate(process_cpu_seconds_total[1m]) * 100", "refId": "A"}
+      ],
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+    },
+    {
+      "type": "timeseries",
+      "title": "Active Subscriptions",
+      "datasource": "VictoriaMetrics",
+      "targets": [
+        {"expr": "subscription_service_active_subscriptions", "refId": "A"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Subscriptions Created Rate",
+      "datasource": "VictoriaMetrics",
+      "targets": [
+        {"expr": "rate(subscription_service_subscriptions_created_total[1m])", "refId": "A"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Subscription Creation Errors Rate",
+      "datasource": "VictoriaMetrics",
+      "targets": [
+        {"expr": "rate(subscription_service_subscription_creation_errors_total[1m])", "refId": "A"}
+      ]
+    }
+  ]
+}
