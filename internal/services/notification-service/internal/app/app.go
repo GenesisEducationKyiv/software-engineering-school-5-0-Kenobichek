@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"notification-service/config"
 	"notification-service/internal/domain"
@@ -60,7 +61,7 @@ func Run(ctx context.Context) error {
 		log.Printf("[APP] No handler found for topic: %s", topic)
 		return nil
 	}
-	
+
 	consumer := infrastructure.NewKafkaConsumer(
 		cfg.Kafka.Brokers,
 		topics,
@@ -68,17 +69,28 @@ func Run(ctx context.Context) error {
 		messageHandler,
 	)
 
-	consumer.Start(ctx)
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	consumerDone := consumer.Start(ctx)
 
 	log.Println("[APP] Notification Service is running. Waiting for events...")
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-ctx.Done()
+	log.Println("[APP] Notification Service shutting down...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	log.Println("[APP] Waiting for Kafka consumer to finish...")
 	select {
-	case <-quit:
-		log.Println("[APP] Notification Service shutting down...")
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
+		case <-consumerDone:
+			log.Println("[APP] Kafka consumer stopped")
+		case <-shutdownCtx.Done():
+			log.Printf("[APP] Kafka consumer shutdown timeout: %v", shutdownCtx.Err())
 	}
+
+	log.Println("[APP] Graceful shutdown completed")
+	return nil
 }
+
