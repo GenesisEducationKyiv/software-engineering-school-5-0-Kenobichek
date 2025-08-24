@@ -16,4 +16,4 @@ services:
 networks:
   weather-net:
     external: true
-    name: software-engineering-school-5-0-kenobichek_default 
+    name: software-engineering-school-5-0-kenobichek_default

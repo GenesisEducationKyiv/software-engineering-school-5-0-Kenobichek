@@ -74,9 +74,9 @@ func (h *SubscribeHandler) Subscribe(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SubscribeHandler) handleTokenCommand(
-	w http.ResponseWriter, 
-	r *http.Request, 
-	command string, 
+	w http.ResponseWriter,
+	r *http.Request,
+	command string,
 	validateFunc func(string) error,
 	successMsg string,
 ) {

@@ -32,7 +32,12 @@ services:
         condition: service_healthy
     ports:
       - "${PORT}:${PORT}"
-
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:${PORT}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
     volumes:
       - ./:/app
@@ -43,6 +48,7 @@ services:
     image: victoriametrics/victoria-metrics:v1.96.0
     container_name: victoria-metrics
     command:
+      - '--httpListenAddr=:8428'
       - '--promscrape.config=/etc/prometheus/prometheus.yml'
       - '--promscrape.config.strictParse=false'
     volumes:
@@ -55,10 +61,12 @@ services:
           - victoria-metrics
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8428/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8428/health"]
       interval: 30s
       timeout: 10s
       retries: 5
+      start_period: 30s
+    
 
   grafana:
     image: grafana/grafana:10.4.2

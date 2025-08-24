@@ -3,11 +3,11 @@ package app
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
+	"subscription-service/internal/handlers"
 	"subscription-service/internal/observability/metrics"
 	"syscall"
 	"time"
@@ -15,12 +15,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"subscription-service/config"
-	"subscription-service/internal/domain"
-	"subscription-service/internal/handlers"
 	"subscription-service/internal/infrastructure"
 	"subscription-service/internal/jobs"
 	"subscription-service/internal/repository/subscriptions"
 	"subscription-service/internal/weatherclient"
+	"subscription-service/internal/handlers/subscribe-strategies"
 )
 
 const (
@@ -59,9 +58,10 @@ func Run(ctx context.Context, logger loggerManager) error {
 
 	mux := http.NewServeMux()
 	mux.Handle(metricsPath, promhttp.Handler())
+	mux.Handle("/health", handlers.NewHealthHandler())
 
 	metricsServer := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.Observability.VictoriaMetricsPort),
+		Addr:         fmt.Sprintf("0.0.0.0:%d", cfg.Observability.VictoriaMetricsPort),
 		Handler:      mux,
 		ReadTimeout:  metricsReadTimeout,
 		WriteTimeout: metricsWriteTimeout,
@@ -70,7 +70,7 @@ func Run(ctx context.Context, logger loggerManager) error {
 	
 	metricsServerErr := make(chan error, 1)
 	go func() {
-		logger.Infof("metrics endpoint listening", "addr", fmt.Sprintf(":%d", cfg.Observability.VictoriaMetricsPort))
+		logger.Infof("metrics endpoint listening on %s", fmt.Sprintf("0.0.0.0:%d", cfg.Observability.VictoriaMetricsPort))
 		if err := metricsServer.ListenAndServe(); 
 			err != nil && err != http.ErrServerClosed {
 			metricsServerErr <- fmt.Errorf("metrics server error: %w", err)
@@ -99,23 +99,18 @@ func Run(ctx context.Context, logger loggerManager) error {
 		}
 	}()
 
-	dispatcher := handlers.NewDispatcher(repo, publisher, logger)
-
-	eventHandler := func(ctx context.Context, topic string, message []byte) error {
-		var cmd domain.SubscriptionCommand
-		if err := json.Unmarshal(message, &cmd); err != nil {
-			return fmt.Errorf("unmarshal subscription command: %w", err)
-		}
-		return dispatcher.Handle(ctx, cmd)
-	}
 	topics := []string{cfg.Kafka.CommandTopic}
+
+	strategySelector := func(cmd string) (subscribestrategies.CommandStrategy, error) {
+		return subscribestrategies.StrategyFactory(cmd, repo, publisher, logger)
+	}
 
 	consumer := infrastructure.NewKafkaConsumer(
 		cfg.Kafka.Brokers,
 		topics,
 		subscriptionServiceGroupID,
-		eventHandler,
 		logger,
+		strategySelector,
 	)
 	consumerDone := consumer.Start(ctx)
 
