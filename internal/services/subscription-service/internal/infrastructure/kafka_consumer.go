@@ -2,20 +2,24 @@ package infrastructure
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"sync"
 	"time"
+
+	"subscription-service/internal/domain"
+	subscribestrategies "subscription-service/internal/handlers/subscribe-strategies"
 
 	"github.com/segmentio/kafka-go"
 )
 
 const (
-	delay = 200 * time.Millisecond
-	maxRetryDelay = 30 * time.Second
+	delay                   = 200 * time.Millisecond
+	maxRetryDelay           = 30 * time.Second
 	maxHandlerRetryAttempts = 5
-	maxByteLimit = 10 * 1024
-	minByteLimit = 10 * 1024
-	commitInterval = 0
+	maxByteLimit            = 10 * 1024
+	minByteLimit            = 10 * 1024
+	commitInterval          = 0
 )
 
 type loggerManager interface {
@@ -24,28 +28,28 @@ type loggerManager interface {
 	Debugf(format string, args ...interface{})
 }
 
-type EventHandler func(ctx context.Context, topic string, message []byte) error
+type StrategySelector func(cmd string) (subscribestrategies.CommandStrategy, error)
 
 type KafkaConsumer struct {
-	brokers []string
-	topics  []string
-	groupID string
-	handler EventHandler
-	logger loggerManager
+	brokers   []string
+	topics    []string
+	groupID   string
+	logger    loggerManager
+	selectStrategy StrategySelector
 }
 
 func NewKafkaConsumer(
 	brokers, topics []string,
 	groupID string,
-	handler EventHandler,
 	logger loggerManager,
+	selector StrategySelector,
 ) *KafkaConsumer {
 	return &KafkaConsumer{
-		brokers: brokers,
-		topics:  topics,
-		groupID: groupID,
-		handler: handler,
-		logger: logger,
+		brokers:   brokers,
+		topics:    topics,
+		groupID:   groupID,
+		logger:    logger,
+		selectStrategy: selector,
 	}
 }
 
@@ -94,11 +98,11 @@ func (c *KafkaConsumer) consumeTopicWithRetries(ctx context.Context, topic strin
 
 func (c *KafkaConsumer) consumeTopic(ctx context.Context, topic string) error {
 	r := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  c.brokers,
-		Topic:    topic,
-		GroupID:  c.groupID,
-		MinBytes: minByteLimit,
-		MaxBytes: maxByteLimit,
+		Brokers:        c.brokers,
+		Topic:          topic,
+		GroupID:        c.groupID,
+		MinBytes:       minByteLimit,
+		MaxBytes:       maxByteLimit,
 		CommitInterval: commitInterval,
 	})
 	defer func() {
@@ -121,11 +125,9 @@ func (c *KafkaConsumer) consumeTopic(ctx context.Context, topic string) error {
 
 		c.logger.Infof("received event from topic %s, partition %d, offset %d", topic, m.Partition, m.Offset)
 
-		if c.handler != nil {
-			if err := c.processWithRetry(ctx, topic, m.Value); err != nil {
-				c.logger.Infof("handler failed for topic %s: %v", topic, err)
-				continue
-			}
+		if err := c.processWithRetry(ctx, topic, m.Value); err != nil {
+			c.logger.Infof("handler failed for topic %s: %v", topic, err)
+			continue
 		}
 
 		if err := r.CommitMessages(ctx, m); err != nil {
@@ -136,23 +138,40 @@ func (c *KafkaConsumer) consumeTopic(ctx context.Context, topic string) error {
 }
 
 func (c *KafkaConsumer) processWithRetry(ctx context.Context, topic string, msg []byte) error {
-	delay := delay
+	retryDelay := delay
 	var lastErr error
 
 	for i := 0; i < maxHandlerRetryAttempts; i++ {
-		err := c.handler(ctx, topic, msg)
+		var cmd domain.SubscriptionCommand
+		if err := json.Unmarshal(msg, &cmd); err != nil {
+			c.logger.Errorf("failed to unmarshal message for topic %s: %v", topic, err)
+			lastErr = err
+			break
+		}
+
+		strategy, err := c.selectStrategy(cmd.Command)
+		if err != nil {
+			c.logger.Errorf("failed to get strategy for command %s: %v", cmd.Command, err)
+			lastErr = err
+			break
+		}
+
+		err = strategy.Execute(ctx, cmd)
 		if err == nil {
 			return nil
 		}
 		lastErr = err
-		c.logger.Errorf("handler error (attempt %d/%d) for topic %s: %v", i+1, maxHandlerRetryAttempts, topic, err)
+		c.logger.Errorf("strategy execution error (attempt %d/%d) for topic %s: %v", i+1, maxHandlerRetryAttempts, topic, err)
 
 		select {
-		case <-time.After(delay):
-			delay *= 2
+		case <-time.After(retryDelay):
+			retryDelay *= 2
 		case <-ctx.Done():
 			return ctx.Err()
 		}
+	}
+	if lastErr == nil {
+		lastErr = errors.New("unknown error")
 	}
 	return errors.New("max handler retry attempts reached: " + lastErr.Error())
 }
