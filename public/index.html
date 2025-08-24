@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Weather API Demo</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    form { margin-bottom: 20px; }
+    pre { background: #f4f4f4; padding: 10px; border: 1px solid #ccc; }
+    input, select, button { margin: 5px 0; padding: 8px; width: 100%; max-width: 300px; }
+  </style>
+</head>
+<body>
+  <h1>🌤️ Weather Forecast</h1>
+
+  <section>
+    <h2>🔍 Get Current Weather</h2>
+    <form id="weatherForm">
+      <label for="city">City</label>
+      <input type="text" id="city" name="city" placeholder="Enter city" required>
+      <button type="submit">Get Weather</button>
+    </form>
+    <pre id="weatherResult"></pre>
+  </section>
+
+  <section>
+    <h2>📬 Subscribe to Updates</h2>
+    <form id="subscribeForm">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" placeholder="Your email" required>
+
+      <label for="subCity">City</label>
+      <input type="text" id="subCity" name="subCity" placeholder="City" required>
+
+      <label for="frequency">Frequency</label>
+      <select id="frequency" name="frequency" required>
+        <option value="daily">Daily</option>
+        <option value="hourly">Hourly</option>
+      </select>
+
+      <button type="submit">Subscribe</button>
+    </form>
+    <pre id="subscribeResult"></pre>
+  </section>
+
+  <section>
+    <h2>✅ Confirm Subscription</h2>
+    <form id="confirmForm">
+      <label for="confirmToken">Confirmation Token</label>
+      <input type="text" id="confirmToken" name="confirmToken" placeholder="Token" required>
+      <button type="submit">Confirm</button>
+    </form>
+    <pre id="confirmResult"></pre>
+  </section>
+
+  <section>
+    <h2>❌ Unsubscribe</h2>
+    <form id="unsubscribeForm">
+      <label for="unsubToken">Unsubscribe Token</label>
+      <input type="text" id="unsubToken" name="unsubToken" placeholder="Token" required>
+      <button type="submit">Unsubscribe</button>
+    </form>
+    <pre id="unsubResult"></pre>
+  </section>
+
+  <script>
+    const baseUrl = '/api';
+
+    async function handleSubmit(event, { method = 'GET', endpoint, resultId, data = null }) {
+      event.preventDefault();
+      const resultBox = document.getElementById(resultId);
+      resultBox.textContent = '⏳ Loading...';
+
+      try {
+        const options = { method };
+        if (method === 'POST') {
+          options.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+          options.body = new URLSearchParams(data);
+        }
+
+        const res = await fetch(endpoint, options);
+        const text = await res.text();
+        resultBox.textContent = res.ok ? text : `❗ Error: ${text}`;
+      } catch (error) {
+        resultBox.textContent = `❌ Network error: ${error.message}`;
+      }
+    }
+
+    document.getElementById('weatherForm').onsubmit = e =>
+      handleSubmit(e, {
+        endpoint: `${baseUrl}/weather?city=${encodeURIComponent(document.getElementById('city').value)}`,
+        resultId: 'weatherResult'
+      });
+
+    document.getElementById('subscribeForm').onsubmit = e =>
+      handleSubmit(e, {
+        method: 'POST',
+        endpoint: `${baseUrl}/subscribe`,
+        resultId: 'subscribeResult',
+        data: {
+          email: document.getElementById('email').value,
+          city: document.getElementById('subCity').value,
+          frequency: document.getElementById('frequency').value
+        }
+      });
+
+    document.getElementById('confirmForm').onsubmit = e =>
+      handleSubmit(e, {
+        endpoint: `${baseUrl}/confirm/${encodeURIComponent(document.getElementById('confirmToken').value)}`,
+        resultId: 'confirmResult'
+      });
+
+    document.getElementById('unsubscribeForm').onsubmit = e =>
+      handleSubmit(e, {
+        endpoint: `${baseUrl}/unsubscribe/${encodeURIComponent(document.getElementById('unsubToken').value)}`,
+        resultId: 'unsubResult'
+      });
+  </script>
+</body>
+</html>

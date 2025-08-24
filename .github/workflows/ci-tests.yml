@@ -1,0 +1,30 @@
+name: ci-tests
+
+on:
+  push:
+    branches:
+      - '**'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Run tests for ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - api-gateway
+          - notification-service
+          - subscription-service
+          - weather-service
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Run tests
+        working-directory: internal/services/${{ matrix.service }}
+        run: go test -v ./...
